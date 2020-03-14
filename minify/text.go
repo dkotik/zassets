@@ -3,9 +3,13 @@ package minify
 import (
 	"bytes"
 	"io"
+	"regexp"
 )
 
-func Tmpl(w io.Writer, r io.Reader) error {
+var reNewLineWithWhiteSpace = regexp.MustCompile(`\s*?\n\s*`)
+
+// EatLineWhiteSpace eliminates new lines and surrounding white space.
+func EatLineWhiteSpace(w io.Writer, r io.Reader) error {
 	// TODO: not very efficient here!
 	var b bytes.Buffer
 	_, err := io.Copy(&b, r)

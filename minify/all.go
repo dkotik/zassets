@@ -4,7 +4,6 @@ package minify
 
 import (
 	"os"
-	"regexp"
 
 	"github.com/tdewolff/minify"
 	"github.com/tdewolff/minify/css"
@@ -16,8 +15,6 @@ import (
 var (
 	Minifier      = minify.New()
 	debug    bool = os.Getenv(`DEBUG`) != ``
-
-	reNewLineWithWhiteSpace = regexp.MustCompile(`\s*?\n\s*`)
 )
 
 func init() {

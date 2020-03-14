@@ -1,8 +1,7 @@
 package goresminpack
 
 import (
-	"fmt"
-	"log"
+	"net/http"
 	"path"
 	"strings"
 
@@ -20,19 +19,13 @@ if ok {
 }
 `
 
-// Generate minifies and packs the resources into the output file.
+// Generate packs the resources into a Go file.
 func Generate(assetDirectory, outputFilePath, outputObjectName string) (err error) {
-	d := Dir(assetDirectory)
-	// d := http.Dir(assetDirectory)
-	err = vfsgen.Generate(d, vfsgen.Options{
-		Filename:        outputFilePath,
-		PackageName:     strings.ToLower(path.Base(path.Dir(outputFilePath))),
-		VariableName:    outputObjectName,
-		VariableComment: fmt.Sprintf("%s holds", outputObjectName),
-		BuildTags:       "!debug,!dev",
+	d := http.Dir(assetDirectory)
+	return vfsgen.Generate(d, vfsgen.Options{
+		Filename:     outputFilePath,
+		PackageName:  strings.ToLower(path.Base(path.Dir(outputFilePath))),
+		VariableName: outputObjectName,
+		BuildTags:    "!debug,!dev",
 	})
-	if err != nil {
-		log.Fatalln(err)
-	}
-	return err
 }

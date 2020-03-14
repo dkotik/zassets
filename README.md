@@ -1,6 +1,6 @@
-# GoResMinPack, Your Opinionated Resource Compiler
+# GoResMinPack, An Opinionated Resource Compiler
 
-The program generates an embedded static asset pack next to a given directory. It is tailored completely for the convenience of its author at the moment, batteries included. It is hacky in many places with certain hard-wired defaults, a particular ESNext compiler, and the inclusion of [Bulma CSS][bulma] framework. Pull requests for more general usage and optimization are welcome. This project is indebted to the following excellent packages:
+The program generates an embedded static asset pack next to a given directory. It is tailored completely for the convenience of its author at the moment, batteries included. **Warning:** It is hacky in many places with certain hard-wired defaults, a particular ESNext compiler ESBuild, which is [hacky itself](https://github.com/evanw/esbuild/issues/13#issuecomment-587111778), and the inclusion of [Bulma CSS][bulma] framework. The project will be streamlined later. Pull requests for more general usage and optimization are welcome. This project is indebted to the following excellent packages:
 
 - github.com/shurcooL/vfsgen
 - github.com/tdewolff/minify
@@ -26,6 +26,7 @@ All files matching `/public/**` glob are registered to a content-based hash map.
 ## Roadmap
 - [ ] Hot-swapable <directory>.dev.gen.go driver that emulates serving of assets directly from disk, when launching in `debug` or `dev` build tags.
 - [ ] Webp image compression support.
+- [ ] Check is `esbuild` is in Exec path.
 
 ## Debug Mode
 
