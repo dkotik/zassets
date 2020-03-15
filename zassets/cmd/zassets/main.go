@@ -20,7 +20,7 @@ func main() {
 		},
 	}
 
-	CLI.PersistentFlags().StringP(`output`, `o`, ``, `Override default output file name.`)
+	// CLI.PersistentFlags().StringP(`output`, `o`, ``, `Override default output file name.`)
 	CLI.PersistentFlags().StringSliceP(`include`, `i`, []string{}, `A list of directories containing common static assets.`)
 	CLI.PersistentFlags().BoolP(`debug`, `d`, os.Getenv(`DEBUG`) != ``, `Make output as readable as possible.`)
 }

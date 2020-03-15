@@ -1,4 +1,4 @@
-package goresminpack
+package zassets
 
 // Public creates two look-up maps of content-based hashes
 // for <resourceDir>/public.
