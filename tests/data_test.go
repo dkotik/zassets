@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"testing"
+
+	"github.com/dkotik/zassets"
 )
 
 func dump(p string) {
-	f, err := Data.Open(p)
+	f, err := Assets.Open(p)
 	if err != nil {
 		panic(err)
 	}
@@ -21,8 +24,14 @@ func dump(p string) {
 }
 
 func TestData(t *testing.T) {
-	dump(`/test.css`)
-	dump(`/template.tmpl`)
-	dump(`/test.js`)
+	zassets.Walk(Assets, `/`, filepath.WalkFunc(func(path string, info os.FileInfo, err error) error {
+		if !info.IsDir() {
+			dump(path)
+		}
+		return nil
+	}))
+	// dump(`/test.css`)
+	// dump(`/template.tmpl`)
+	// dump(`/test.js`)
 	t.Fail()
 }

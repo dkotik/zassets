@@ -1,10 +1,8 @@
 package compile
 
 import (
-	"errors"
 	"io"
 	"log"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -125,15 +123,12 @@ func (c *Compiler) task(destination, source string) (err error) {
 	}
 	c.tasks <- source
 	go func() {
-		if rand.Intn(3) == 0 {
-			c.errors <- errors.New("random error")
-		}
 		if err := c.each(destination, source); err != nil {
 			c.errors <- err
 		}
-		for i := 0; i < 1+rand.Intn(3); i++ {
-			time.Sleep(time.Second)
-		}
+		// for i := 0; i < 1+rand.Intn(3); i++ {
+		// 	time.Sleep(time.Second)
+		// }
 		<-c.tasks
 	}()
 	return nil

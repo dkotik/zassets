@@ -8,6 +8,7 @@ import (
 	"os"
 	"regexp"
 
+	"github.com/chai2010/webp"
 	"github.com/tdewolff/minify/css"
 	"github.com/tdewolff/minify/html"
 	"github.com/tdewolff/minify/svg"
@@ -40,6 +41,13 @@ var DefaultRefiners = []Refiner{
 		MatchPath: regexp.MustCompile(`(?i)\.png$`),
 		Encode:    png.Encode,
 		Decode:    png.Decode,
+	},
+	&RefineRaster{ // Compress Webp files.
+		MatchPath: regexp.MustCompile(`(?i)\.webp$`),
+		Encode: func(w io.Writer, img image.Image) error {
+			return webp.Encode(w, img, &webp.Options{Quality: 60})
+		},
+		Decode: webp.Decode,
 	},
 	&RefineText{ // Strip extra white space from SQL and Tmpl files.
 		MatchPath: regexp.MustCompile(`(?i)\.(sql|tmpl)$`),

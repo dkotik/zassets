@@ -2,8 +2,8 @@ module tests
 
 go 1.14
 
-replace goresminpack => ../
+replace github.com/dkotik/zassets => ../
 
 require (
-    goresminpack v1.0.0
+    github.com/dkotik/zassets v1.0.0
 )
