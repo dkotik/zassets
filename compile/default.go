@@ -5,6 +5,7 @@ import (
 	"image/jpeg"
 	"image/png"
 	"io"
+	"os"
 	"regexp"
 
 	"github.com/tdewolff/minify/css"
@@ -18,6 +19,7 @@ var DefaultRefiners = []Refiner{
 		MatchPath: regexp.MustCompile(`(?i)\.html?$`),
 		Minifier:  html.Minify,
 	},
+	&RefineJavascript{},
 	&RefineMinify{ // Clean up CSS files.
 		MatchPath: regexp.MustCompile(`(?i)\.css$`),
 		Minifier:  css.Minify,
@@ -45,3 +47,24 @@ var DefaultRefiners = []Refiner{
 		Replace:   ``,
 	},
 }
+
+type passthrough struct{}
+
+func (p *passthrough) Match(s string) bool { return true }
+
+func (p *passthrough) Debug(destination, source string) error {
+	w, err := os.Create(destination)
+	if err != nil {
+		return err
+	}
+	defer w.Close()
+	r, err := os.Open(source)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+	_, err = io.Copy(w, r)
+	return err
+}
+
+func (p *passthrough) Rename(path string) string { return path }

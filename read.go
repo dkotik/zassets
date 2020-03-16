@@ -9,7 +9,7 @@ import (
 )
 
 // Must panics if there is an error associated with loading assets.
-func Must(s http.FileSystem, err error) http.FileSystem {
+func Must(s *Store, err error) *Store {
 	if err != nil {
 		panic(err)
 	}
@@ -18,12 +18,12 @@ func Must(s http.FileSystem, err error) http.FileSystem {
 
 // FromBytes serves assets from bytes encoding a zip archive.
 // Used for accessing assets embedded into a Go binary.
-func FromBytes(b []byte) (http.FileSystem, error) {
+func FromBytes(b []byte) (*Store, error) {
 	return NewStore(bytes.NewReader(b), int64(len(b)))
 }
 
 // FromArchive serves assets from a zip archive.
-func FromArchive(p string) (http.FileSystem, error) {
+func FromArchive(p string) (*Store, error) {
 	r, err := os.Open(p)
 	if err != nil {
 		return nil, err
@@ -35,10 +35,10 @@ func FromArchive(p string) (http.FileSystem, error) {
 	return NewStore(r, s.Size())
 }
 
-// FromDirectory serves assets from disk.
-func FromDirectory(p string) (http.FileSystem, error) {
-	return http.Dir(p), nil
-}
+// // FromDirectory serves assets from disk.
+// func FromDirectory(p string) (*Store, error) {
+// 	return &Store{http.Dir(p)}, nil
+// }
 
 // Walk emulates filepath.Walk()
 func Walk(s http.FileSystem, p string, f filepath.WalkFunc) error {

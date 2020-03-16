@@ -1,4 +1,4 @@
-package goresminpack
+package compile
 
 import (
 	"fmt"
@@ -6,11 +6,20 @@ import (
 	"regexp"
 )
 
-type Option func(*Compiler) error
+// OptRefiners links refiners to the compiler.
+// They will run in the order added for each file.
+func OptRefiners(refiners ...Refiner) func(c *Compiler) error {
+	return func(c *Compiler) error {
+		for _, r := range refiners {
+			c.refiners = append(c.refiners, r)
+		}
+		return nil
+	}
+}
 
 // OptIgnore eliminates all matching files from processing.
 // Ignored files will still be accessible as includes.
-func OptIgnore(patterns ...string) Option {
+func OptIgnore(patterns ...string) func(c *Compiler) error {
 	return func(c *Compiler) error {
 		for _, p := range patterns {
 			r, err := regexp.Compile(p)
@@ -24,7 +33,7 @@ func OptIgnore(patterns ...string) Option {
 }
 
 // OptInclude adds an additional path to look for includes, when neccessary.
-func OptInclude(paths ...string) Option {
+func OptInclude(paths ...string) func(c *Compiler) error {
 	return func(c *Compiler) error {
 		for _, p := range paths {
 			s, err := os.Stat(p)
@@ -41,17 +50,9 @@ func OptInclude(paths ...string) Option {
 }
 
 // OptDebug presents the directory files in readable format.
-func OptDebug() Option {
+func OptDebug() func(c *Compiler) error {
 	return func(c *Compiler) error {
 		c.debug = true
 		return nil
 	}
 }
-
-// // OptPublic registers assets with to a global HTTP handler by hash.
-// func OptPublic() Option {
-// 	return func(c *Compiler) error {
-// 		c.public = true
-// 		return nil
-// 	}
-// }

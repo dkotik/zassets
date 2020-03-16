@@ -84,11 +84,47 @@ type RefineSASS struct {
 	RefineSCSS
 }
 
-func (rf *RefineSASS) prepare(comp libsass.Compiler, debug bool) {
-	rf.RefineSCSS.prepare(comp, debug)
-	comp.Option(libsass.WithSyntax(libsass.SassSyntax))
+func (rf *RefineSASS) Match(p string) bool {
+	return reMatchSASS.MatchString(p)
 }
 
-func (rf *RefineSASS) Match(p string) bool {
-	return reMatchSCSS.MatchString(p)
+func (rf *RefineSASS) Refine(destination, source string) error {
+	w, err := os.Create(destination)
+	if err != nil {
+		return err
+	}
+	defer w.Close()
+	r, err := os.Open(source)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+	comp, err := libsass.New(w, r)
+	if err != nil {
+		return err
+	}
+	rf.prepare(comp, false)
+	comp.Option(libsass.IncludePaths([]string{filepath.Dir(source)}))
+	comp.Option(libsass.WithSyntax(libsass.SassSyntax))
+	return comp.Run()
+}
+
+func (rf *RefineSASS) Debug(destination, source string) error {
+	w, err := os.Create(destination)
+	if err != nil {
+		return err
+	}
+	defer w.Close()
+	r, err := os.Open(source)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+	comp, err := libsass.New(w, r)
+	if err != nil {
+		return err
+	}
+	rf.prepare(comp, true)
+	comp.Option(libsass.WithSyntax(libsass.SassSyntax))
+	return comp.Run()
 }

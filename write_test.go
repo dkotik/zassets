@@ -11,7 +11,7 @@ import (
 func TestZipWrite(t *testing.T) {
 	w, err := os.Create(`tests/test.zip`)
 	defer w.Close()
-	err = write(w, http.Dir(`../tests`))
+	err = write(w, http.Dir(`tests`))
 	if err != nil {
 		panic(err)
 	}

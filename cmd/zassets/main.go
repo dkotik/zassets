@@ -8,7 +8,7 @@ import (
 
 func main() {
 	var CLI = &cobra.Command{
-		Use:     `goresminpack`,
+		Use:     `zassets`,
 		Version: `0.0.1 Alpha`,
 		Short:   `Compile and embed a resource directory into a Go module.`,
 		Long: `Compile and embed a resource directory into a Go module.

@@ -1,7 +1,7 @@
 # Zassets, An Elegant Resource Manager for Go
-> **v0.0.1 Disclaimer:** The project is hacky and inefficient in many places. It carries some technical debt from minifiers, which are not adapted to work well with virtual file systems, and a particular ESNext compiler ESBuild, which is incredibly fast but [quite hacky itself](https://github.com/evanw/esbuild/issues/13#issuecomment-587111778). Pull requests for more general usage and optimization are welcome.
+> **v0.0.1 Disclaimer:** The API is unstable. The project carries some technical debt from minifiers, which are not adapted to work well with virtual file systems, and a particular ESNext compiler ESBuild, which is incredibly fast but [quite hacky itself](https://github.com/evanw/esbuild/issues/13#issuecomment-587111778). Pull requests for more general usage and optimization are welcome.
 
-The program generates an embedded static asset pack as a Zip archive next to a given directory. This project is inspired by the following excellent packages:
+The program generates an embedded static asset pack as a Zip archive next to a given directory. It allows for multiple asset packs to exist harmoniously side by side in the same module, unlike most other packers. This project is inspired by the following excellent packages:
 
 - https://github.com/shurcooL/vfsgen
 - https://github.com/tdewolff/minify
@@ -30,7 +30,8 @@ The program will create two files, the deployment file `assets.gen.go` and the d
 All files matching `/public/**` glob are registered to a content-based hash map. `goresminpack.PublicName` function returns the associated hash with the appropriate extension. It is handy for encoding asset paths in your template engine. Use `goresminpack.PublicHTTPHandler` to present all public files through a single handler.
 
 ## Roadmap
-- [ ] go install instructions
+- [ ] go install instructionsi
+- [ ] store.RegisterFilesToPublicNamespace(s string)?
 - [ ] // TODO: use sync.Map for public.go like here: /usr/local/go/src/mime/type.go
 - [ ] Hot-swapable <directory>.dev.gen.go driver that emulates serving of assets directly from disk, when launching in `debug` or `dev` build tags.
 - [ ] Webp image compression support.
