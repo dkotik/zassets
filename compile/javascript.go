@@ -32,6 +32,7 @@ func (rf *RefineJavascript) Refine(destination, source string) error {
 }
 
 func (rf *RefineJavascript) compile(file, output string, debug bool) error {
+	// exec.LookPath(`esbuild`) // TODO: should I check if it is installed?
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*5)
 	defer cancel() // interrupts the process running
 	args := []string{

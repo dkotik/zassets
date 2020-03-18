@@ -6,7 +6,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 )
 
 type zipWriter struct {
@@ -56,6 +55,7 @@ func (z *zipWriter) Add(p string) error {
 			return err
 		}
 		defer r.Close()
-		return z.add(r, info, path.Clean(strings.TrimPrefix(s, p)))
+		// chop off walk root and filepath separator
+		return z.add(r, info, s[len(p)+1:])
 	})
 }

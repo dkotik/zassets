@@ -2,6 +2,7 @@ package zassets
 
 import (
 	"archive/zip"
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -33,6 +34,30 @@ type Store struct {
 	m map[string]*zip.File
 }
 
+// String reduces the asset and returns it as a string.
+func (s *Store) String(p string) (string, error) {
+	r, err := s.Open(p)
+	if err != nil {
+		return "", err
+	}
+	defer r.Close()
+	var b bytes.Buffer
+	_, err = io.Copy(&b, r)
+	return b.String(), err
+}
+
+// Bytes reduces the asset and returns it as a byte array.
+func (s *Store) Bytes(p string) ([]byte, error) {
+	r, err := s.Open(p)
+	if err != nil {
+		return []byte{}, err
+	}
+	defer r.Close()
+	var b bytes.Buffer
+	_, err = io.Copy(&b, r)
+	return b.Bytes(), err
+}
+
 // Open returns a handle to the underlying file.
 func (s *Store) Open(p string) (http.File, error) {
 	f, ok := s.m[p]
@@ -54,10 +79,11 @@ func (s *Store) Open(p string) (http.File, error) {
 func (s *Store) makeDir(p string) *zipDir {
 	dir := &zipDir{i: make([]os.FileInfo, 0), n: path.Base(p)}
 	prefix := p
-	if !strings.HasPrefix(prefix, `/`) {
-		prefix = `/` + prefix
-	}
-	if !strings.HasSuffix(prefix, `/`) {
+	if prefix == "" {
+		// root folder
+	} else if prefix == "/" || prefix == `\` || prefix == "." {
+		prefix = "" // also root folder, but by another expression
+	} else if !strings.HasSuffix(prefix, `/`) {
 		prefix = prefix + `/`
 	}
 	for k, f := range s.m {

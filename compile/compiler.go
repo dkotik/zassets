@@ -1,6 +1,7 @@
 package compile
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -35,11 +36,6 @@ func NewCompiler(opts ...func(*Compiler) error) (*Compiler, error) {
 			return c, err
 		}
 	}
-	if len(c.refiners) == 0 {
-		for _, r := range DefaultRefiners {
-			c.refiners = append(c.refiners, r)
-		}
-	}
 	return c, nil
 }
 
@@ -57,8 +53,9 @@ type Compiler struct {
 // Run gathers and compiles assets from files and folders in given paths.
 func (c *Compiler) Run(destination string, paths ...string) (err error) {
 	for _, p := range paths {
+		// fmt.Println(`compiling assets in`, p, paths)
 		if !c.allowPath(p) {
-			break
+			continue
 		}
 		s, err := os.Stat(p)
 		if err != nil {
@@ -67,10 +64,13 @@ func (c *Compiler) Run(destination string, paths ...string) (err error) {
 		if s.IsDir() {
 			err = filepath.Walk(p, func(s string, i os.FileInfo, err error) error {
 				if i.IsDir() || err != nil {
+					if !c.allowPath(s) {
+						return filepath.SkipDir
+					}
 					return err
 				}
 				if !c.allowPath(s) {
-					return filepath.SkipDir
+					return nil
 				}
 				relative := strings.TrimPrefix(s, p)
 				return c.task(
@@ -80,7 +80,7 @@ func (c *Compiler) Run(destination string, paths ...string) (err error) {
 			if err != nil {
 				return err
 			}
-			break
+			continue
 		}
 		err = c.task(filepath.Join(destination, filepath.Base(p)), p)
 		if err != nil {
@@ -147,7 +147,11 @@ func (c *Compiler) each(destination, source string) (err error) {
 				log.Printf("Refining %s to %s using %s.", source, r.Rename(destination), reflect.TypeOf(r))
 				return r.Debug(r.Rename(destination), source)
 			}
-			return r.Refine(r.Rename(destination), source)
+			err = r.Refine(r.Rename(destination), source)
+			if err != nil {
+				return fmt.Errorf(`could not refine %s: %w`, source, err)
+			}
+			return nil // stop processing
 		}
 	}
 	if c.debug {
@@ -170,6 +174,7 @@ func (c *Compiler) each(destination, source string) (err error) {
 func (c *Compiler) allowPath(p string) bool {
 	for _, r := range c.ignore {
 		if r.MatchString(p) {
+			// log.Printf("Ignoring %s.\n", p)
 			return false
 		}
 	}

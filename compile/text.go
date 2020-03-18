@@ -38,3 +38,24 @@ func (rf *RefineText) Refine(destination, source string) error {
 	_, err = io.WriteString(w, rf.Search.ReplaceAllString(b.String(), rf.Replace))
 	return err
 }
+
+type passthrough struct{}
+
+func (p *passthrough) Match(s string) bool { return true }
+
+func (p *passthrough) Debug(destination, source string) error {
+	w, err := os.Create(destination)
+	if err != nil {
+		return err
+	}
+	defer w.Close()
+	r, err := os.Open(source)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+	_, err = io.Copy(w, r)
+	return err
+}
+
+func (p *passthrough) Rename(path string) string { return path }

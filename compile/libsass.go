@@ -2,7 +2,6 @@ package compile
 
 import (
 	"os"
-	"path/filepath"
 	"regexp"
 
 	libsass "github.com/wellington/go-libsass"
@@ -13,6 +12,8 @@ var _ Refiner = &RefineSCSS{}
 
 var reMatchSCSS = regexp.MustCompile(`(?i)\.scss$`)
 var reMatchSASS = regexp.MustCompile(`(?i)\.sass$`)
+
+// TODO: libsass does support generation of a source map. try it?
 
 // RefineSCSS compiles SCSS files to minified CSS.
 type RefineSCSS struct {
@@ -46,17 +47,9 @@ func (rf *RefineSCSS) Refine(destination, source string) error {
 		return err
 	}
 	defer w.Close()
-	r, err := os.Open(source)
-	if err != nil {
-		return err
-	}
-	defer r.Close()
-	comp, err := libsass.New(w, r)
-	if err != nil {
-		return err
-	}
+	comp, err := libsass.New(w, nil)
 	rf.prepare(comp, false)
-	comp.Option(libsass.IncludePaths([]string{filepath.Dir(source)}))
+	comp.Option(libsass.Path(source)) // point to the source
 	return comp.Run()
 }
 
@@ -66,16 +59,9 @@ func (rf *RefineSCSS) Debug(destination, source string) error {
 		return err
 	}
 	defer w.Close()
-	r, err := os.Open(source)
-	if err != nil {
-		return err
-	}
-	defer r.Close()
-	comp, err := libsass.New(w, r)
-	if err != nil {
-		return err
-	}
+	comp, err := libsass.New(w, nil)
 	rf.prepare(comp, true)
+	comp.Option(libsass.Path(source)) // point to the source
 	return comp.Run()
 }
 
@@ -94,18 +80,10 @@ func (rf *RefineSASS) Refine(destination, source string) error {
 		return err
 	}
 	defer w.Close()
-	r, err := os.Open(source)
-	if err != nil {
-		return err
-	}
-	defer r.Close()
-	comp, err := libsass.New(w, r)
-	if err != nil {
-		return err
-	}
+	comp, err := libsass.New(w, nil)
 	rf.prepare(comp, false)
-	comp.Option(libsass.IncludePaths([]string{filepath.Dir(source)}))
 	comp.Option(libsass.WithSyntax(libsass.SassSyntax))
+	comp.Option(libsass.Path(source)) // point to the source
 	return comp.Run()
 }
 
@@ -115,16 +93,9 @@ func (rf *RefineSASS) Debug(destination, source string) error {
 		return err
 	}
 	defer w.Close()
-	r, err := os.Open(source)
-	if err != nil {
-		return err
-	}
-	defer r.Close()
-	comp, err := libsass.New(w, r)
-	if err != nil {
-		return err
-	}
+	comp, err := libsass.New(w, nil)
 	rf.prepare(comp, true)
 	comp.Option(libsass.WithSyntax(libsass.SassSyntax))
+	comp.Option(libsass.Path(source)) // point to the source
 	return comp.Run()
 }

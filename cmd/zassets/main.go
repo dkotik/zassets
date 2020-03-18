@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"strings"
 
 	"github/dkotik/zassets"
 	"github/dkotik/zassets/compile"
@@ -12,7 +11,20 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func endOnError(err error) {
+	if err == nil {
+		return
+	}
+	fmt.Fprintf(os.Stderr, "Error: %s.\n", err.Error())
+	// panic(err)
+	os.Exit(1)
+}
+
+// TODO: three execution paths: embed, compile, compile and embed
+
 func main() {
+	ignore := make([]string, 0)
+	ev := &zassets.EmbedValues{}
 	var CLI = &cobra.Command{
 		Use:     `zassets`,
 		Version: `0.0.1 Alpha`,
@@ -21,56 +33,45 @@ func main() {
 Embedded resources are stored in an object
 that satisfies http.FileSystem interface.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			entries, err := cmd.PersistentFlags().GetStringSlice(`embed`)
-			if err != nil {
+			// entries, err := cmd.PersistentFlags().GetStringArray(`embed`)
+			if len(args) == 0 {
 				cmd.Help()
-				return
-			}
-			variable, err := cmd.PersistentFlags().GetString(`var`)
-			if err != nil || variable == "" {
-				fmt.Print("Error: variable name must be specified.\n")
-				return
-			}
-			p, err := cmd.PersistentFlags().GetString(`package`)
-			if err != nil || p == "" {
-				fmt.Print("Error: package name must be specified.\n")
 				return
 			}
 			if ok, _ := cmd.PersistentFlags().GetBool(`refine`); ok {
 				t, err := ioutil.TempDir(os.TempDir(), `zassets-*`)
-				if err != nil {
-					fmt.Printf("Error: %s.\n", err.Error())
-					return
+				endOnError(err)
+				c, err := compile.NewCompiler(
+					compile.WithIgnore(ignore...),
+					compile.WithDefaultOptions())
+				endOnError(err)
+				if ok, _ = cmd.PersistentFlags().GetBool(`debug`); ok {
+					compile.WithDebug()(c)
 				}
-				c, _ := compile.NewCompiler()
-				err = c.Run(t, entries...)
+				err = c.Run(t, args...)
 				defer os.RemoveAll(t)
-				if err != nil {
-					fmt.Printf("Error: %s.\n", err.Error())
-					return
-				}
-				entries = []string{t}
+				endOnError(err)
+				args = []string{t}
 			}
-			comment, _ := cmd.PersistentFlags().GetString(`comment`)
-			tags, _ := cmd.PersistentFlags().GetStringSlice(`tags`)
-			err = zassets.EmbedAll(os.Stdout, &zassets.EmbedValues{
-				Variable: variable,
-				Package:  p,
-				Comment:  comment,
-				Tags:     strings.Join(tags, `,`)},
-				entries...)
-			if err != nil {
-				fmt.Printf("Error: %s.\n", err.Error())
+			w := os.Stdout
+			if o, err := cmd.PersistentFlags().GetString(`output`); o != "" {
+				endOnError(err)
+				w, err = os.Create(o)
+				endOnError(err)
+				defer w.Close()
 			}
+			err := zassets.EmbedAll(w, ev, args...)
+			endOnError(err)
 		},
 	}
-
-	CLI.PersistentFlags().StringSliceP(`embed`, `e`, []string{}, `A list of files and directories containing common static assets.`)
+	CLI.PersistentFlags().StringP(`output`, `o`, ``, `Write program output to this location.`)
+	CLI.PersistentFlags().BoolP(`embed`, `e`, false, `Embed provided files and directories.`)
 	CLI.PersistentFlags().BoolP(`refine`, `r`, false, `Apply default refiners to assets before embedding.`)
-	CLI.PersistentFlags().StringP(`var`, `v`, ``, `Assets will be accessible using this variable name.`)
-	CLI.PersistentFlags().StringP(`package`, `p`, ``, `Assets will belong to this package.`)
-	CLI.PersistentFlags().StringSliceP(`tags`, `t`, []string{}, `Specify build tags.`)
-	CLI.PersistentFlags().StringP(`comment`, `c`, ``, `Include a comment.`)
-	CLI.PersistentFlags().BoolP(`debug`, `d`, os.Getenv(`DEBUG`) != ``, `Make output as readable as possible.`)
+	CLI.PersistentFlags().StringVarP(&ev.Variable, `var`, `v`, ``, `Assets will be accessible using this variable name.`)
+	CLI.PersistentFlags().StringVarP(&ev.Package, `package`, `p`, ``, `Assets will belong to this package.`)
+	CLI.PersistentFlags().StringArrayVarP(&ev.Tags, `tags`, `t`, []string{}, `Specify build tags.`)
+	CLI.PersistentFlags().StringArrayVarP(&ignore, `ignore`, `i`, []string{}, `Skip files and directories that match provided patterns.`)
+	CLI.PersistentFlags().StringVarP(&ev.Comment, `comment`, `c`, ``, `Include a comment.`)
+	CLI.PersistentFlags().BoolP(`debug`, `d`, os.Getenv(`DEBUG`) != ``, `Write the contents of refined files as readable as possible.`)
 	CLI.Execute()
 }

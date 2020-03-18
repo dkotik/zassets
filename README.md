@@ -16,13 +16,15 @@ go install github.com/dkotik/zassets/cmd/zassets
 ```
 
 ## Usage
-Point Zassets at a static resource files or directories by adding the following line under the package declaration:
+Point Zassets at resource files or directories by adding the following line under the package declaration:
 
 ``` go
-//go:generate sh -c "zassets --var Assets --package test --embed dir1 dir2 file1 > assets.gen.go"
+//go:generate zassets --output assets.gen.go --package test --var Assets --embed dir1 dir2 file1
 ```
 
-The program will create two files, the deployment file `assets.gen.go` and the development file `assets.dev.gen.go`. Each file contains an object that satisfies `http.FileSystem` interface named after the input directory. The development file can be activated using either **dev** or **debug** build tag and points directly to the transformed, but not minified, source files on disk, allowing you to edit them live.
+<!-- _The program will create two files, the deployment file `assets.gen.go` and the development file `assets.dev.gen.go`. Each file contains an object that satisfies `http.FileSystem` interface named after the input directory. The development file can be activated using either **dev** or **debug** build tag and points directly to the transformed, but not minified, source files on disk, allowing you to edit them live._ -->
+
+You may use shell redirection for the output in this manner: `//go:generate sh -c "zassets --var Assets --package test --embed dir1 dir2 file1 > assets.gen.go"`. But if an error occurs due to a missing file or during refinement, the shell will truncate `assets.gen.go` and cause package execution errors because of a missing variable. For this reason, it is wiser to specify `--output` parameter explicitly every time.
 
 ## Debug Mode
 
@@ -37,13 +39,10 @@ The program will create two files, the deployment file `assets.gen.go` and the d
 All files matching `/public/**` glob are registered to a content-based hash map. `goresminpack.PublicName` function returns the associated hash with the appropriate extension. It is handy for encoding asset paths in your template engine. Use `goresminpack.PublicHTTPHandler` to present all public files through a single handler.
 
 ## Roadmap
-- [ ] atomic opened files counter for Store, put the reader to sleep when 0
+- [ ] Just use debug parameter? Hot-swapable <directory>.dev.gen.go driver that emulates serving of assets directly from disk, when launching in `debug` or `dev` build tags.
 - [ ] optimize dir tree constructor for Store
+- [ ] atomic opened files counter for Store, put the reader to sleep when 0
 - [ ] store.RegisterFilesToPublicNamespace(s string)?
 - [ ] // TODO: use sync.Map for public.go like here: /usr/local/go/src/mime/type.go?
-- [ ] Hot-swapable <directory>.dev.gen.go driver that emulates serving of assets directly from disk, when launching in `debug` or `dev` build tags.
-- [ ] Check is `esbuild` is in Exec path.
-- [ ] RootPath, Recurse, IncludePattern and ExcludePattern can just go. Let the shell handle that, just take a list of file names (and 99% of use-cases will probably just consist of "everything in these N directories" or "those M files" or "*.html" anyway)
-- [ ] OutputPath can just go. Dump to stdout, use shell-redirection
-- [ ] BuildConstraints and the Dev* stuff can go; just define an interface to access the filesystem, let that default to a os/ioutil backed implementation and then override that in a generated init-function. That way, during development you can just delete the file containing the embedded data and run go generate before committing, to regenerate the file and get the embedded implementation.
-- [ ] MinifyTypes can just be a boolean -minify flag; the program knows what set of types it can minify and I'd argue that you either want to minify them all, or minify none of them. I'd also argue, that this doesn't really have to be done by embed at all. During development, minification is unnecessary anyway and for committing, just add the minification as a separate go-generate comment before embed.
+- [ ] Common path iterator, ignore node_modules
+- [ ] three operation modes for main.go
