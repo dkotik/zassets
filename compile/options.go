@@ -18,13 +18,6 @@ import (
 // WithDefaultOptions configures standard compiler behavior.
 func WithDefaultOptions() func(c *Compiler) error {
 	return func(c *Compiler) (err error) {
-		err = WithIgnore(
-			// skip files and folders than begin with `.` or `_` rune.
-			`(\A|\\|\/)[\.\_][^\\\/]+$`,
-		)(c)
-		if err != nil {
-			return err
-		}
 		err = WithRefiners(
 			&RefineMinify{ // Clean up HTML files.
 				MatchPath: regexp.MustCompile(`(?i)\.html?$`),

@@ -1,4 +1,4 @@
-module github/dkotik/zassets
+module github.com/dkotik/zassets
 
 go 1.14
 

@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
-	"strings"
 	"time"
 )
 
@@ -51,41 +50,11 @@ type Compiler struct {
 }
 
 // Run gathers and compiles assets from files and folders in given paths.
-func (c *Compiler) Run(destination string, paths ...string) (err error) {
-	for _, p := range paths {
-		// fmt.Println(`compiling assets in`, p, paths)
-		if !c.allowPath(p) {
-			continue
-		}
-		s, err := os.Stat(p)
-		if err != nil {
-			return err
-		}
-		if s.IsDir() {
-			err = filepath.Walk(p, func(s string, i os.FileInfo, err error) error {
-				if i.IsDir() || err != nil {
-					if !c.allowPath(s) {
-						return filepath.SkipDir
-					}
-					return err
-				}
-				if !c.allowPath(s) {
-					return nil
-				}
-				relative := strings.TrimPrefix(s, p)
-				return c.task(
-					filepath.Join(destination, relative),
-					filepath.Join(p, relative))
-			})
-			if err != nil {
-				return err
-			}
-			continue
-		}
-		err = c.task(filepath.Join(destination, filepath.Base(p)), p)
-		if err != nil {
-			return err
-		}
+func (c *Compiler) Run(destination string, i *Iterator) (err error) {
+	if err = i.Walk(func(target, relative string, info os.FileInfo) error {
+		return c.task(filepath.Join(destination, relative), target)
+	}); err != nil {
+		return err
 	}
 	time.Sleep(time.Millisecond * 100)
 	for { // wait on workers
@@ -169,14 +138,4 @@ func (c *Compiler) each(destination, source string) (err error) {
 	defer w.Close()
 	_, err = io.Copy(w, r)
 	return err
-}
-
-func (c *Compiler) allowPath(p string) bool {
-	for _, r := range c.ignore {
-		if r.MatchString(p) {
-			// log.Printf("Ignoring %s.\n", p)
-			return false
-		}
-	}
-	return true
 }

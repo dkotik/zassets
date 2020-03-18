@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"regexp"
 
-	"github/dkotik/zassets"
-	"github/dkotik/zassets/compile"
+	"github.com/dkotik/zassets"
+	"github.com/dkotik/zassets/compile"
 
 	"github.com/spf13/cobra"
 )
@@ -20,9 +21,8 @@ func endOnError(err error) {
 	os.Exit(1)
 }
 
-// TODO: three execution paths: embed, compile, compile and embed
-
 func main() {
+	refine, embed, debug := false, false, false
 	ignore := make([]string, 0)
 	ev := &zassets.EmbedValues{}
 	var CLI = &cobra.Command{
@@ -38,20 +38,35 @@ that satisfies http.FileSystem interface.`,
 				cmd.Help()
 				return
 			}
-			if ok, _ := cmd.PersistentFlags().GetBool(`refine`); ok {
-				t, err := ioutil.TempDir(os.TempDir(), `zassets-*`)
+			iterator, err := compile.NewIterator(args, ignore)
+			endOnError(err)
+
+			if refine && !embed {
+				c, err := compile.NewCompiler(compile.WithDefaultOptions())
 				endOnError(err)
-				c, err := compile.NewCompiler(
-					compile.WithIgnore(ignore...),
-					compile.WithDefaultOptions())
-				endOnError(err)
-				if ok, _ = cmd.PersistentFlags().GetBool(`debug`); ok {
+				if debug {
 					compile.WithDebug()(c)
 				}
-				err = c.Run(t, args...)
+				o, _ := cmd.PersistentFlags().GetString(`output`)
+				err = c.Run(o, iterator)
+				endOnError(err)
+				return
+			}
+
+			if refine {
+				t, err := ioutil.TempDir(os.TempDir(), `zassets-*`)
+				endOnError(err)
+				c, err := compile.NewCompiler(compile.WithDefaultOptions())
+				endOnError(err)
+				if debug {
+					compile.WithDebug()(c)
+				}
+				err = c.Run(t, iterator)
 				defer os.RemoveAll(t)
 				endOnError(err)
-				args = []string{t}
+				iterator = &compile.Iterator{
+					Entries: []string{t},
+					Ignore:  []*regexp.Regexp{}}
 			}
 			w := os.Stdout
 			if o, err := cmd.PersistentFlags().GetString(`output`); o != "" {
@@ -60,18 +75,17 @@ that satisfies http.FileSystem interface.`,
 				endOnError(err)
 				defer w.Close()
 			}
-			err := zassets.EmbedAll(w, ev, args...)
-			endOnError(err)
+			endOnError(zassets.EmbedAll(w, ev, iterator))
 		},
 	}
 	CLI.PersistentFlags().StringP(`output`, `o`, ``, `Write program output to this location.`)
-	CLI.PersistentFlags().BoolP(`embed`, `e`, false, `Embed provided files and directories.`)
-	CLI.PersistentFlags().BoolP(`refine`, `r`, false, `Apply default refiners to assets before embedding.`)
+	CLI.PersistentFlags().BoolVarP(&embed, `embed`, `e`, false, `Embed provided files and directories.`)
+	CLI.PersistentFlags().BoolVarP(&refine, `refine`, `r`, false, `Apply default refiners to assets before embedding.`)
 	CLI.PersistentFlags().StringVarP(&ev.Variable, `var`, `v`, ``, `Assets will be accessible using this variable name.`)
 	CLI.PersistentFlags().StringVarP(&ev.Package, `package`, `p`, ``, `Assets will belong to this package.`)
 	CLI.PersistentFlags().StringArrayVarP(&ev.Tags, `tags`, `t`, []string{}, `Specify build tags.`)
 	CLI.PersistentFlags().StringArrayVarP(&ignore, `ignore`, `i`, []string{}, `Skip files and directories that match provided patterns.`)
 	CLI.PersistentFlags().StringVarP(&ev.Comment, `comment`, `c`, ``, `Include a comment.`)
-	CLI.PersistentFlags().BoolP(`debug`, `d`, os.Getenv(`DEBUG`) != ``, `Write the contents of refined files as readable as possible.`)
+	CLI.PersistentFlags().BoolVarP(&debug, `debug`, `d`, os.Getenv(`DEBUG`) != ``, `Write the contents of refined files as readable as possible.`)
 	CLI.Execute()
 }

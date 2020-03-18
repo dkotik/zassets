@@ -40,9 +40,8 @@ All files matching `/public/**` glob are registered to a content-based hash map.
 
 ## Roadmap
 - [ ] Just use debug parameter? Hot-swapable <directory>.dev.gen.go driver that emulates serving of assets directly from disk, when launching in `debug` or `dev` build tags.
+- [ ] Store should switch to io.Reader instead of zip.Reader
 - [ ] optimize dir tree constructor for Store
 - [ ] atomic opened files counter for Store, put the reader to sleep when 0
 - [ ] store.RegisterFilesToPublicNamespace(s string)?
 - [ ] // TODO: use sync.Map for public.go like here: /usr/local/go/src/mime/type.go?
-- [ ] Common path iterator, ignore node_modules
-- [ ] three operation modes for main.go
