@@ -20,10 +20,12 @@ type RefineSCSS struct {
 	Paths []string
 }
 
+// Rename switches a SASS asset to a CSS asset.
 func (rf *RefineSCSS) Rename(p string) string {
 	return p[:len(p)-4] + `css`
 }
 
+// Match returns true if pattern fits the file path.
 func (rf *RefineSCSS) Match(p string) bool {
 	return reMatchSCSS.MatchString(p)
 }
@@ -41,6 +43,7 @@ func (rf *RefineSCSS) prepare(comp libsass.Compiler, debug bool) {
 	comp.Option(libsass.IncludePaths(rf.Paths))
 }
 
+// Refine process SASS source into a minified CSS file.
 func (rf *RefineSCSS) Refine(destination, source string) error {
 	w, err := os.Create(destination)
 	if err != nil {
@@ -53,6 +56,7 @@ func (rf *RefineSCSS) Refine(destination, source string) error {
 	return comp.Run()
 }
 
+// Debug leaves comments, keeps track of source, and preserves readability of the resulting CSS.
 func (rf *RefineSCSS) Debug(destination, source string) error {
 	w, err := os.Create(destination)
 	if err != nil {
@@ -70,10 +74,12 @@ type RefineSASS struct {
 	RefineSCSS
 }
 
+// Match returns true if pattern fits the file path.
 func (rf *RefineSASS) Match(p string) bool {
 	return reMatchSASS.MatchString(p)
 }
 
+// Refine process SASS source into a minified CSS file.
 func (rf *RefineSASS) Refine(destination, source string) error {
 	w, err := os.Create(destination)
 	if err != nil {
@@ -87,6 +93,7 @@ func (rf *RefineSASS) Refine(destination, source string) error {
 	return comp.Run()
 }
 
+// Debug leaves comments, keeps track of source, and preserves readability of the resulting CSS.
 func (rf *RefineSASS) Debug(destination, source string) error {
 	w, err := os.Create(destination)
 	if err != nil {

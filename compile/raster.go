@@ -21,6 +21,7 @@ type RefineRaster struct {
 	Decode    func(io.Reader) (image.Image, error)
 }
 
+// Match returns true if pattern fits the file path.
 func (rf *RefineRaster) Match(p string) bool {
 	if reMinPass.MatchString(p) {
 		return false // skip already minified assets
@@ -28,6 +29,7 @@ func (rf *RefineRaster) Match(p string) bool {
 	return rf.MatchPath.MatchString(p)
 }
 
+// Refine scales the image and reduces its quality for web distribution.
 func (rf *RefineRaster) Refine(destination, source string) error {
 	r, err := os.Open(source)
 	if err != nil {

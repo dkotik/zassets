@@ -61,6 +61,7 @@ func PublicName(p string) (string, bool) {
 }
 
 func PublicRegister(p string, d http.FileSystem) error {
+	// use d.(*Store) assertion to get the hash map. Otherwise make hash for each content item.
 	f, err := d.Open(p)
 	if err != nil {
 		return err

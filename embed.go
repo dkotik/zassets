@@ -2,8 +2,11 @@ package zassets
 
 import (
 	"archive/zip"
+	"crypto/md5"
+	"crypto/sha256"
 	"errors"
 	"fmt"
+	"hash"
 	"io"
 	"log"
 	"os"
@@ -12,6 +15,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/OneOfOne/xxhash"
 	"github.com/dkotik/zassets/compile"
 )
 
@@ -44,19 +48,49 @@ var {{ .Variable }} = zassets.Must(zassets.FromBytes([]byte("
 {{- end -}}
 
 {{- define "footer" -}}
-")))
+"))){{ if len .HashTable }}
+
+// {{.Variable}}HashTable associates each entry with a content-based {{ .HashAlgorythm }} hash.
+var {{ .Variable }}HashTable = map[string]string{
+    {{- range $k, $v := .HashTable }}
+    "{{ $k }}": "{{ $v }}",
+    {{- end }}
+}
+{{- end -}}
 {{- end -}}`))
 
 // EmbedValues contains fields required for the template.
 type EmbedValues struct {
-	Variable string
-	Package  string
-	Comment  string
-	Tags     []string
+	Variable      string
+	Package       string
+	Comment       string
+	Tags          []string
+	HashAlgorythm string
+	HashTable     map[string]string
+}
+
+func (e *EmbedValues) captureHash(w io.Writer, r io.Reader, p string) (err error) {
+	var h hash.Hash
+	switch e.HashAlgorythm {
+	default: // do nothing
+		_, err = io.Copy(w, r)
+		return err
+	case `md5`:
+		h = md5.New()
+	case `sha256`:
+		h = sha256.New()
+	case `xx`:
+		h = xxhash.New64()
+	}
+	w = io.MultiWriter(h, w)
+	_, err = io.Copy(w, r)
+	e.HashTable[p] = fmt.Sprintf(`%x`, h.Sum([]byte{}))
+	return err
 }
 
 // EmbedAll zips and embeds the contents of all paths.
 func EmbedAll(w io.Writer, v *EmbedValues, i *compile.Iterator) (err error) {
+	v.HashTable = make(map[string]string)
 	pr, pw := io.Pipe() // TODO: this does not appear to be elegant
 	go func() {
 		defer pw.Close()
@@ -79,8 +113,7 @@ func EmbedAll(w io.Writer, v *EmbedValues, i *compile.Iterator) (err error) {
 			if err != nil {
 				return err
 			}
-			_, err = io.Copy(w, r)
-			return err
+			return v.captureHash(w, r, target)
 		})
 		if err != nil { // TODO: this does not appear elegant at all
 			log.Fatal(err)
@@ -102,6 +135,9 @@ func Embed(w io.Writer, r io.Reader, v *EmbedValues, t *template.Template) error
 	}
 	if v.Package == "" {
 		return errors.New("package name must be specified")
+	}
+	if v.HashAlgorythm != "" && v.HashAlgorythm != "md5" && v.HashAlgorythm != "sha256" && v.HashAlgorythm != "xx" {
+		return errors.New("unknown hash algorythm, choose from xx, md5, sha")
 	}
 
 	err := t.ExecuteTemplate(w, `header`, v)

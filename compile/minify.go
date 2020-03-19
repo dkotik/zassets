@@ -12,6 +12,7 @@ import (
 var _ Refiner = &RefineMinify{}
 var reMinPass = regexp.MustCompile(`(?i)\.min\.[^\.]+$`)
 
+// RefineMinify interfaces with the popular Minifier library.
 type RefineMinify struct {
 	passthrough
 
@@ -19,6 +20,7 @@ type RefineMinify struct {
 	Minifier  minify.MinifierFunc
 }
 
+// Match returns true if pattern fits the file path.
 func (rf *RefineMinify) Match(p string) bool {
 	if reMinPass.MatchString(p) {
 		return false // skip already minified assets
@@ -26,6 +28,7 @@ func (rf *RefineMinify) Match(p string) bool {
 	return rf.MatchPath.MatchString(p)
 }
 
+// Refine applies a minifier to source and writes the result to destination.
 func (rf *RefineMinify) Refine(destination, source string) error {
 	w, err := os.Create(destination)
 	if err != nil {

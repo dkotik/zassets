@@ -33,7 +33,6 @@ func main() {
 Embedded resources are stored in an object
 that satisfies http.FileSystem interface.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			// entries, err := cmd.PersistentFlags().GetStringArray(`embed`)
 			if len(args) == 0 {
 				cmd.Help()
 				return
@@ -84,6 +83,7 @@ that satisfies http.FileSystem interface.`,
 	CLI.PersistentFlags().StringVarP(&ev.Variable, `var`, `v`, ``, `Assets will be accessible using this variable name.`)
 	CLI.PersistentFlags().StringVarP(&ev.Package, `package`, `p`, ``, `Assets will belong to this package.`)
 	CLI.PersistentFlags().StringArrayVarP(&ev.Tags, `tags`, `t`, []string{}, `Specify build tags.`)
+	CLI.PersistentFlags().StringVarP(&ev.HashAlgorythm, `hashwith`, `hw`, ``, `Include a hash table in the embedded output. Choose from xx, md5, and sha256.`)
 	CLI.PersistentFlags().StringArrayVarP(&ignore, `ignore`, `i`, []string{}, `Skip files and directories that match provided patterns.`)
 	CLI.PersistentFlags().StringVarP(&ev.Comment, `comment`, `c`, ``, `Include a comment.`)
 	CLI.PersistentFlags().BoolVarP(&debug, `debug`, `d`, os.Getenv(`DEBUG`) != ``, `Write the contents of refined files as readable as possible.`)

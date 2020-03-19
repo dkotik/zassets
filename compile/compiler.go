@@ -13,9 +13,13 @@ import (
 
 // Refiner converts one type of asset into another or optimizes the content.
 type Refiner interface {
+	// Match will activate the refiner on matching paths.
 	Match(path string) (ok bool)
+	// Some refiners transform one asset into another, like SASS => CSS.
 	Rename(oldPath string) (newPath string)
+	// Change the content from source to destination.
 	Refine(destination, source string) error
+	// Same as Refine, but keep the changed files as readable as possible.
 	Debug(destination, source string) error
 }
 

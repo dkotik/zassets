@@ -13,6 +13,13 @@ import (
 	"time"
 )
 
+type SStore interface {
+	Open(p string) (io.Reader, error)
+	MustString(p string) string
+	MustBytes(p string) []byte
+	List() map[string]string
+}
+
 // TODO: https://github.com/gnue/httpfs/blob/master/zipfs/dir.go uses caching and might be more efficient
 
 // NewStore indexes a zipped archive.

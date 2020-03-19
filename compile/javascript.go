@@ -12,10 +12,12 @@ import (
 var _ Refiner = &RefineJavascript{}
 var reJavascriptMatch = regexp.MustCompile(`(?i)\.(js|json|jsx)$`)
 
+// RefineJavascript compiles a Javascript file to ESNext.
 type RefineJavascript struct {
 	passthrough
 }
 
+// Match returns true if pattern fits the file path.
 func (rf *RefineJavascript) Match(p string) bool {
 	if reMinPass.MatchString(p) {
 		return false // skip already minified assets
@@ -23,10 +25,12 @@ func (rf *RefineJavascript) Match(p string) bool {
 	return reJavascriptMatch.MatchString(p)
 }
 
+// Debug preserves the comments and keeps Javascript readable.
 func (rf *RefineJavascript) Debug(destination, source string) error {
 	return rf.compile(source, destination, true)
 }
 
+// Refine runs the compilation and minification.
 func (rf *RefineJavascript) Refine(destination, source string) error {
 	return rf.compile(source, destination, false)
 }
