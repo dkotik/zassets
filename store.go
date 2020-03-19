@@ -13,32 +13,10 @@ import (
 	"time"
 )
 
-type SStore interface {
-	Open(p string) (io.Reader, error)
-	MustString(p string) string
-	MustBytes(p string) []byte
-	List() map[string]string
-}
-
-// TODO: https://github.com/gnue/httpfs/blob/master/zipfs/dir.go uses caching and might be more efficient
-
-// NewStore indexes a zipped archive.
-func NewStore(r io.ReaderAt, size int64) (*Store, error) {
-	z, err := zip.NewReader(r, size)
-	if err != nil {
-		return nil, err
-	}
-	s := &Store{z, make(map[string]*zip.File)}
-	for _, f := range z.File {
-		s.m[f.Name] = f
-	}
-	return s, nil
-}
-
 // Store presents as zipped archive as http.FileSystem.
 type Store struct {
-	r *zip.Reader
-	m map[string]*zip.File
+	r    io.ReaderAt
+	Size int64
 }
 
 // String reduces the asset and returns it as a string.
@@ -65,60 +43,69 @@ func (s *Store) Bytes(p string) ([]byte, error) {
 	return b.Bytes(), err
 }
 
-// Open returns a handle to the underlying file.
+// Open returns a handle to the underlying file or directory.
+// The directory operations are slow! Zip is not the right file
+// format for frequent tree transversal. Put Store behind a
+// a proper caching layer, if speed is a requirement.
 func (s *Store) Open(p string) (http.File, error) {
-	f, ok := s.m[p]
-	if ok {
-		handle, err := f.Open()
-		if err != nil {
-			return nil, err
-		}
-		return &zipFile{f, handle, 0}, nil
+	z, err := zip.NewReader(s.r, s.Size)
+	if err != nil {
+		return nil, err
 	}
+	for _, f := range z.File {
+		if f.Name == p { // located the requested file
+			handle, err := f.Open()
+			if err != nil {
+				return nil, err
+			}
+			return &zipFile{f, handle, 0}, nil
+		}
+	}
+
 	// Contruct a directory interface.
-	dir := s.makeDir(p)
+	if p == "/" || p == `\` || p == "." {
+		p = "" // also the root, but by another expression
+	} else if !strings.HasSuffix(p, `/`) {
+		p = p + `/`
+	}
+	dir := makeDir(z.File, p)
 	if len(dir.i) == 0 { //
 		return nil, &os.PathError{Op: `open`, Path: p, Err: os.ErrNotExist}
 	}
 	return dir, nil
 }
 
-func (s *Store) makeDir(p string) *zipDir {
+func makeDir(z []*zip.File, p string) *zipDir {
 	dir := &zipDir{i: make([]os.FileInfo, 0), n: path.Base(p)}
-	prefix := p
-	if prefix == "" {
-		// root folder
-	} else if prefix == "/" || prefix == `\` || prefix == "." {
-		prefix = "" // also root folder, but by another expression
-	} else if !strings.HasSuffix(prefix, `/`) {
-		prefix = prefix + `/`
-	}
-	for k, f := range s.m {
-		if strings.HasPrefix(k, prefix) {
-			remainder := strings.TrimPrefix(k, prefix)
-			if index := strings.Index(remainder, `/`); index > 0 {
-				subDir := s.makeDir(path.Join(p, remainder[:index+1]))
-				if len(subDir.i) > 0 {
-					dir.i = append(dir.i, subDir)
+	subDirectories := make([]string, 0)
+OUTER:
+	for _, f := range z {
+		if strings.HasPrefix(f.Name, p) {
+			cutoff := len(p)
+			if index := strings.Index(f.Name[cutoff:], `/`); index > 0 {
+				// Found a sub directory!
+				rel := f.Name[cutoff : cutoff+index+1]
+				for _, s := range subDirectories {
+					if s == rel {
+						continue OUTER // subdir already added
+					}
 				}
-			} else {
-				i := f.FileInfo()
-				dir.i = append(dir.i, i)
-				if t := i.ModTime(); t.After(dir.m) {
-					dir.m = t
-				}
+				subDirectories = append(subDirectories, rel)
+				continue
 			}
+			dir.i = append(dir.i, f.FileInfo())
 		}
 	}
-	// TODO: this is inefficient! I should cache dir file info here
-	// and check cache first line of the function
+
+	for _, s := range subDirectories {
+		dir.i = append(dir.i, &zipDir{n: s})
+	}
 	return dir
 }
 
 type zipDir struct {
 	i []os.FileInfo
 	n string
-	m time.Time
 	p int
 }
 
@@ -150,7 +137,7 @@ func (d *zipDir) Stat() (os.FileInfo, error) { return d, nil }
 func (d *zipDir) Name() string               { return d.n }
 func (d *zipDir) Size() int64                { return 0 }
 func (d *zipDir) Mode() os.FileMode          { return 0755 | os.ModeDir }
-func (d *zipDir) ModTime() time.Time         { return d.m }
+func (d *zipDir) ModTime() time.Time         { return time.Time{} } // improve?
 func (d *zipDir) IsDir() bool                { return true }
 func (d *zipDir) Sys() interface{}           { return nil }
 

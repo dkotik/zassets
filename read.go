@@ -19,7 +19,7 @@ func Must(s *Store, err error) *Store {
 // FromBytes serves assets from bytes encoding a zip archive.
 // Used for accessing assets embedded into a Go binary.
 func FromBytes(b []byte) (*Store, error) {
-	return NewStore(bytes.NewReader(b), int64(len(b)))
+	return &Store{bytes.NewReader(b), int64(len(b))}, nil
 }
 
 // FromArchive serves assets from a zip archive.
@@ -32,7 +32,7 @@ func FromArchive(p string) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewStore(r, s.Size())
+	return &Store{r, s.Size()}, nil
 }
 
 // // FromDirectory serves assets from disk.

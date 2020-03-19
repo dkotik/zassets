@@ -1,4 +1,4 @@
-package zassets
+package compile
 
 import (
 	"errors"
@@ -9,7 +9,6 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/dkotik/zassets/compile"
 	"github.com/fsnotify/fsnotify"
 )
 
@@ -18,8 +17,8 @@ import (
 
 type debugger struct {
 	d string
-	c *compile.Compiler
-	i *compile.Iterator
+	c *Compiler
+	i *Iterator
 	// v *EmbedValues
 	w *fsnotify.Watcher
 	l *log.Logger
@@ -57,7 +56,7 @@ func (d *debugger) watch() {
 }
 
 func (d *debugger) Watch(p string) error {
-	i, _ := compile.NewIterator([]string{p}, []string{})
+	i, _ := NewIterator([]string{p}, []string{})
 	return i.Walk(func(target, relative string, info os.FileInfo) error {
 		return d.w.Add(target)
 	})
@@ -85,12 +84,12 @@ func Debug(entries, ignore []string, refine bool) (err error) {
 	if err != nil {
 		return err
 	}
-	d.i, err = compile.NewIterator(entries, ignore)
+	d.i, err = NewIterator(entries, ignore)
 	if err != nil {
 		return err
 	}
-	d.c, err = compile.NewCompiler(
-		compile.WithDefaultOptions(), compile.WithDebug())
+	d.c, err = NewCompiler(
+		WithDefaultOptions(), WithDebug())
 	if err != nil {
 		return err
 	}

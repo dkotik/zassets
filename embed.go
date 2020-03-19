@@ -113,8 +113,9 @@ func EmbedAll(w io.Writer, v *EmbedValues, i *compile.Iterator) (err error) {
 			if err != nil {
 				return err
 			}
-			return v.captureHash(w, r, target)
+			return v.captureHash(w, r, relative)
 		})
+		// TODO: add a hash table here?
 		if err != nil { // TODO: this does not appear elegant at all
 			log.Fatal(err)
 			// panic()
