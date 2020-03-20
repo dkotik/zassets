@@ -12,13 +12,15 @@ func TestEmbedAll(t *testing.T) {
 		[]string{`tests/go.mod`, `tests/data`},
 		[]string{},
 	)
-	err := EmbedAll(os.Stdout, &EmbedValues{
+	em := &Embed{
 		Variable:      "Assets",
 		Package:       "tests",
 		Comment:       "comment\ncomment2\ncomment3",
 		Tags:          []string{`dev`, `debug`},
 		HashAlgorythm: `xx`,
-	}, i)
+	}
+	em.SetTemplate("")
+	err := em.Iterator(os.Stdout, i)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -42,13 +42,9 @@ You may use shell redirection for the output in this manner: `//go:generate sh -
 All files matching `/public/**` glob are registered to a content-based hash map. `goresminpack.PublicName` function returns the associated hash with the appropriate extension. It is handy for encoding asset paths in your template engine. Use `goresminpack.PublicHTTPHandler` to present all public files through a single handler.
 
 ## Roadmap
+- [ ] // TODO: I need to capture error from that go func somehow
 - [ ] --sum parameter // TODO: add a hash table here?
-- [ ] Leave crazy "PublicHTTPHandler" stuff for ember!
-- [ ] Store should switch to io.Reader instead of zip.Reader
-- [ ] optimize dir tree constructor for Store
 - [ ] Just use debug parameter? Hot-swapable <directory>.dev.gen.go driver that emulates serving of assets directly from disk, when launching in `debug` or `dev` build tags.
-- [ ] store.RegisterFilesToPublicNamespace(s string)?
-- [ ] // TODO: use sync.Map for public.go like here: /usr/local/go/src/mime/type.go?
 - [ ] add comments to all exported functions and classes
 
 // The directory operations are slow! Zip is not the right file

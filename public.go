@@ -1,101 +1,95 @@
 package zassets
 
-// Public creates two look-up maps of content-based hashes
-// for <resourceDir>/public.
-// The maps can be used to serve static assets from one or more
-// resource packs
-
 import (
+	"bufio"
 	"fmt"
-	"io"
 	"net/http"
+	"os"
 	"path"
 	"strings"
+	"sync"
 
 	"github.com/OneOfOne/xxhash"
 )
 
-var PublicHashSeed string = `goresminpack`
+// Public provides access to assets distributed among different FileSystems
+// by hash name. This is useful for serving static assets from a single
+// http.Handler sitting behing a caching layer or from a CDN.
+// To find out the hash name for a given asset, call the PublicName function.
+var Public http.FileSystem = &publicSystem{}
 var assetMap = make(map[string]*publicAsset)
 var assetLookUpMap = make(map[string]string)
-
-// ContentType returns content type based on file extension.
-func ContentType(file, defaultValue string) string {
-	switch ext := strings.ToLower(strings.TrimPrefix(path.Ext(file), `.`)); ext {
-	case `html`:
-		return `text/html; charset=utf-8`
-	case `css`:
-		return `text/css; charset=utf-8`
-	case `jpg`, `jpeg`:
-		return `image/jpeg`
-	case `png`:
-		return `image/png`
-	case `gif`:
-		return `image/gif`
-	case `svg`:
-		return `image/svg+xml`
-	case `ico`:
-		// return `image/vnd.microsoft.icon`
-		return `image/x-icon`
-	case `js`:
-		// used to be `application/javascript` This is in accordance with an IETF draft that treats application/javascript as obsolete.
-		return `text/javascript`
-	case `txt`:
-		return `text/plain; charset=utf-8`
-	case `mp3`:
-		return `audio/mpeg`
-	case `pdf`, `zip`, `xml`:
-		return fmt.Sprintf("application/%s", ext)
-	}
-	return defaultValue
-}
+var publicMutex = &sync.Mutex{} // protects from async asset map errors
 
 type publicAsset struct {
-	Name, ContentType string
-	Storage           http.FileSystem
+	Name    string
+	Storage http.FileSystem
 }
 
-func PublicName(p string) (string, bool) {
-	result, ok := assetLookUpMap[p]
+type publicSystem struct{}
+
+func (s *publicSystem) Open(p string) (http.File, error) {
+	publicMutex.Lock()
+	defer publicMutex.Unlock()
+	a, ok := assetMap[p]
+	if !ok {
+		return nil, &os.PathError{Op: `open`, Path: p, Err: os.ErrNotExist}
+	}
+	return a.Storage.Open(a.Name)
+}
+
+// PublicName returns the hash name associated with an asset namespace and path.
+// This function is useful for pointing asset URLs in any templating engine
+// contained in the Public virtual file system.
+func PublicName(namespace, path string) (string, bool) {
+	publicMutex.Lock()
+	defer publicMutex.Unlock()
+	result, ok := assetLookUpMap[namespace+`:`+path]
 	return result, ok
 }
 
-func PublicRegister(p string, d http.FileSystem) error {
-	// use d.(*Store) assertion to get the hash map. Otherwise make hash for each content item.
-	f, err := d.Open(p)
+// PublicRegister connects a FileSystem to Public, differentiated by name space.
+// If the FileSystem includes "sum.xxhash", "sum.md5", or "sum.sha256" file,
+// the hash map is constructed by using values from this file. Otherwise,
+// the hash map is constructed by hashing name space and asset path, which is
+// useful for debugging Public.
+func PublicRegister(namespace string, d http.FileSystem) (err error) {
+	publicMutex.Lock()
+	defer publicMutex.Unlock()
+	add := func(p, h string) {
+		assetLookUpMap[namespace+`:`+p] = h
+		assetMap[h] = &publicAsset{p, d}
+	}
+	var sumFile http.File
+	sumFile, err = d.Open(`sum.xxhash`)
 	if err != nil {
-		return err
+		sumFile, err = d.Open(`sum.md5`)
+		if err != nil {
+			sumFile, err = d.Open(`sum.sha256`)
+		}
 	}
-	defer f.Close()
 
-	h := xxhash.NewS32(0)
-	_, err = io.Copy(h, f)
-	if err != nil {
-		return err
+	if err == nil { // sumFile located
+		scanner := bufio.NewScanner(sumFile)
+		for scanner.Scan() {
+			line := scanner.Text()
+			if i := strings.Index(line, ` `); i > 5 {
+				add(line[i+1:]+path.Ext(path.Base(line)), line[:i])
+			}
+		}
+		return scanner.Err()
 	}
-	h.WriteString(PublicHashSeed)
-	tag := fmt.Sprintf(`%x%s`, h.Sum32(), strings.ToLower(path.Ext(p)))
 
-	assetLookUpMap[p] = tag
-	assetMap[tag] = &publicAsset{p, ContentType(p, `text/plain; charset=utf-8`), d}
-	return nil
-}
-
-// PublicHTTPHandler serves public assets by their hash names.
-func PublicHTTPHandler(w http.ResponseWriter, r *http.Request) error {
-	asset, ok := assetMap[path.Base(r.URL.Path)]
-	if !ok {
-		http.Error(w, "file not found", http.StatusNotFound)
+	h := xxhash.New64()
+	err = Walk(d, ``, func(p string, info os.FileInfo, err error) error {
+		if err != nil || info.IsDir() {
+			return err
+		}
+		h.Reset()
+		h.WriteString(namespace)
+		h.WriteString(p)
+		add(p, fmt.Sprintf(`%x%s`, h.Sum([]byte{}), path.Ext(info.Name())))
 		return nil
-	}
-	f, err := asset.Storage.Open(asset.Name)
-	if !ok {
-		http.Error(w, "file not found", http.StatusNotFound)
-		return nil
-	}
-	defer f.Close()
-	w.Header().Add("content-type", asset.ContentType)
-	// TODO: add eternal expiration headers
-	_, err = io.Copy(w, f)
+	})
 	return err
 }

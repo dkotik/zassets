@@ -24,7 +24,8 @@ func endOnError(err error) {
 func main() {
 	refine, embed, debug := false, false, false
 	ignore := make([]string, 0)
-	ev := &zassets.EmbedValues{}
+	em := &zassets.Embed{}
+	em.SetTemplate("")
 	var CLI = &cobra.Command{
 		Use:     `zassets`,
 		Version: `0.0.1 Alpha`,
@@ -74,18 +75,18 @@ that satisfies http.FileSystem interface.`,
 				endOnError(err)
 				defer w.Close()
 			}
-			endOnError(zassets.EmbedAll(w, ev, iterator))
+			endOnError(em.Iterator(w, iterator))
 		},
 	}
 	CLI.PersistentFlags().StringP(`output`, `o`, ``, `Write program output to this location.`)
 	CLI.PersistentFlags().BoolVarP(&embed, `embed`, `e`, false, `Embed provided files and directories.`)
 	CLI.PersistentFlags().BoolVarP(&refine, `refine`, `r`, false, `Apply default refiners to assets before embedding.`)
-	CLI.PersistentFlags().StringVarP(&ev.Variable, `var`, `v`, ``, `Assets will be accessible using this variable name.`)
-	CLI.PersistentFlags().StringVarP(&ev.Package, `package`, `p`, ``, `Assets will belong to this package.`)
-	CLI.PersistentFlags().StringArrayVarP(&ev.Tags, `tags`, `t`, []string{}, `Specify build tags.`)
-	CLI.PersistentFlags().StringVarP(&ev.HashAlgorythm, `hashwith`, `x`, ``, `Include a hash table in the embedded output. Choose from xx, md5, and sha256.`)
+	CLI.PersistentFlags().StringVarP(&em.Variable, `var`, `v`, ``, `Assets will be accessible using this variable name.`)
+	CLI.PersistentFlags().StringVarP(&em.Package, `package`, `p`, ``, `Assets will belong to this package.`)
+	CLI.PersistentFlags().StringArrayVarP(&em.Tags, `tags`, `t`, []string{}, `Specify build tags.`)
+	CLI.PersistentFlags().StringVarP(&em.HashAlgorythm, `sum`, `s`, ``, `Include a hash table sum.* in the embedded archive. Choose from xxhash, md5, and sha256.`)
 	CLI.PersistentFlags().StringArrayVarP(&ignore, `ignore`, `i`, []string{}, `Skip files and directories that match provided patterns.`)
-	CLI.PersistentFlags().StringVarP(&ev.Comment, `comment`, `c`, ``, `Include a comment.`)
+	CLI.PersistentFlags().StringVarP(&em.Comment, `comment`, `c`, ``, `Include a comment.`)
 	CLI.PersistentFlags().BoolVarP(&debug, `debug`, `d`, os.Getenv(`DEBUG`) != ``, `Write the contents of refined files as readable as possible.`)
 	CLI.Execute()
 }

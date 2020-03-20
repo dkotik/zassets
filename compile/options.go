@@ -1,6 +1,7 @@
 package compile
 
 import (
+	"errors"
 	"fmt"
 	"image"
 	"image/jpeg"
@@ -92,20 +93,24 @@ func WithRefiners(refiners ...Refiner) func(c *Compiler) error {
 	}
 }
 
-// // WithIgnore eliminates all matching files from processing.
-// // Ignored files will still be accessible as includes.
-// func WithIgnore(patterns ...string) func(c *Compiler) error {
-// 	return func(c *Compiler) error {
-// 		for _, p := range patterns {
-// 			r, err := regexp.Compile(p)
-// 			if err != nil {
-// 				return err
-// 			}
-// 			c.ignore = append(c.ignore, r)
-// 		}
-// 		return nil
-// 	}
-// }
+// WithParallelTasks sets the maximum number of simultaneous refiners.
+// Higher number speeds up the compilation but consumes more resources.
+// Default value is 50.
+func WithParallelTasks(max int) func(c *Compiler) error {
+	return func(c *Compiler) error {
+		if c.working() {
+			return errors.New("cannot change tasks while the compiler is running")
+		}
+		if max < 1 {
+			return errors.New("cannot run less than 1 parallel tasks")
+		}
+		if max > 9999 {
+			return errors.New(string(max) + " parallel tasks is too many")
+		}
+		c.tasks = make(chan string, max)
+		return nil
+	}
+}
 
 // WithInclude adds an additional path to look for includes, when neccessary.
 func WithInclude(paths ...string) func(c *Compiler) error {
