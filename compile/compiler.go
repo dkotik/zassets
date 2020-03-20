@@ -97,6 +97,8 @@ func (c *Compiler) task(destination, source string) (err error) {
 	c.tasks <- source
 	go func() {
 		if err := c.each(destination, source); err != nil {
+			// todo remove
+			// fmt.Println(`!!!`, err.Error())
 			c.errors <- err
 		}
 		// for i := 0; i < 1+rand.Intn(3); i++ {

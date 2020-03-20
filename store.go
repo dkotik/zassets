@@ -2,7 +2,6 @@ package zassets
 
 import (
 	"archive/zip"
-	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -19,29 +18,29 @@ type Store struct {
 	Size int64
 }
 
-// String reduces the asset and returns it as a string.
-func (s *Store) String(p string) (string, error) {
-	r, err := s.Open(p)
-	if err != nil {
-		return "", err
-	}
-	defer r.Close()
-	var b bytes.Buffer
-	_, err = io.Copy(&b, r)
-	return b.String(), err
-}
-
-// Bytes reduces the asset and returns it as a byte array.
-func (s *Store) Bytes(p string) ([]byte, error) {
-	r, err := s.Open(p)
-	if err != nil {
-		return []byte{}, err
-	}
-	defer r.Close()
-	var b bytes.Buffer
-	_, err = io.Copy(&b, r)
-	return b.Bytes(), err
-}
+// // String reduces the asset and returns it as a string.
+// func (s *Store) String(p string) (string, error) {
+// 	r, err := s.Open(p)
+// 	if err != nil {
+// 		return "", err
+// 	}
+// 	defer r.Close()
+// 	var b bytes.Buffer
+// 	_, err = io.Copy(&b, r)
+// 	return b.String(), err
+// }
+//
+// // Bytes reduces the asset and returns it as a byte array.
+// func (s *Store) Bytes(p string) ([]byte, error) {
+// 	r, err := s.Open(p)
+// 	if err != nil {
+// 		return []byte{}, err
+// 	}
+// 	defer r.Close()
+// 	var b bytes.Buffer
+// 	_, err = io.Copy(&b, r)
+// 	return b.Bytes(), err
+// }
 
 // Open returns a handle to the underlying file or directory.
 // The directory operations are slow! Zip is not the right file

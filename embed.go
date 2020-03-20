@@ -91,7 +91,7 @@ func (e *Embed) captureHash(w io.Writer, r io.Reader, p string) (err error) {
 		h = md5.New()
 	case `sha256`:
 		h = sha256.New()
-	case `xxhash`:
+	case `xxh64`:
 		h = xxhash.New64()
 	}
 	w = io.MultiWriter(h, w)
@@ -158,8 +158,8 @@ func (e *Embed) Reader(w io.Writer, r io.Reader) error {
 	if e.Package == "" {
 		return errors.New("package name must be specified")
 	}
-	if e.HashAlgorythm != "" && e.HashAlgorythm != "md5" && e.HashAlgorythm != "sha256" && e.HashAlgorythm != "xx" {
-		return errors.New("unknown hash algorythm, choose from xx, md5, sha")
+	if e.HashAlgorythm != "" && e.HashAlgorythm != "md5" && e.HashAlgorythm != "sha256" && e.HashAlgorythm != "xxh64" {
+		return errors.New("unknown hash algorythm, choose from xxh64, md5, sha256")
 	}
 
 	err := e.template.ExecuteTemplate(w, `header`, e)

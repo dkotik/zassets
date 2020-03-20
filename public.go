@@ -61,7 +61,7 @@ func PublicRegister(namespace string, d http.FileSystem) (err error) {
 		assetMap[h] = &publicAsset{p, d}
 	}
 	var sumFile http.File
-	sumFile, err = d.Open(`sum.xxhash`)
+	sumFile, err = d.Open(`sum.xxh64`)
 	if err != nil {
 		sumFile, err = d.Open(`sum.md5`)
 		if err != nil {
