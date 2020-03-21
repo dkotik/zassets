@@ -1,8 +1,9 @@
 package compile
 
 import (
+	"bytes"
 	"context"
-	"os"
+	"fmt"
 	"os/exec"
 	"path/filepath"
 	"regexp"
@@ -49,10 +50,13 @@ func (rf *RefineJavascript) compile(file, output string, debug bool) error {
 	}
 	p := exec.CommandContext(ctx, `esbuild`, args...)
 
-	if debug {
-		p.Stderr = os.Stderr
-	}
-
+	var b bytes.Buffer
+	p.Stderr = &b
+	p.Stdout = &b
 	p.Dir = filepath.Dir(file)
-	return p.Run()
+	err := p.Run()
+	if err != nil {
+		return fmt.Errorf(`%s: %s`, filepath.Dir(file), b.String())
+	}
+	return nil
 }

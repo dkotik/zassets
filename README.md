@@ -1,55 +1,72 @@
 # Zassets, An Elegant Resource Bundler for Go
-> **v0.0.1 Disclaimer:** The API is unstable. The project carries some technical debt from minifiers, which are not adapted to work well with virtual file systems, and a particular ESNext compiler ESBuild, which is incredibly fast but [quite hacky itself](https://github.com/evanw/esbuild/issues/13#issuecomment-587111778). Pull requests for more general usage and optimization are welcome.
+> **v0.0.1 Disclaimer:** The resource debugger and compile APIs are unstable. The project carries some technical debt from some minifiers, which are not adapted to work well with virtual file systems, and a particular ESNext compiler ESBuild, which is incredibly fast but [quite hacky itself](https://github.com/evanw/esbuild/issues/13#issuecomment-587111778). Pull requests for more general usage and optimization are welcome.
 
-The program generates an embedded static asset pack as a Zip archive next to a given directory. It allows for multiple asset packs to exist harmoniously side by side in the same module, unlike most other packers. This project is inspired by the following excellent packages:
+The program generates static asset packs as a embedded Zip archives. It allows for multiple asset packs to exist harmoniously side by side in the same module, unlike most other packers. Giving up individual gzip encoding, common in other resource packers, for a Zip bundle speeds up compilation for larger resource packs. It also allows easy loading of assets from an external archive by calling `zassets.FromArchive("zipFile.zip")` when needed. The loss of speed for directory transversal operations is justified by the assumption that static assets are rarely accessed directly. They should be shielded by a proper caching layer or mirror to a CDN. This project is inspired by the following excellent packages:
 
 - https://github.com/shurcooL/vfsgen
 - https://github.com/tdewolff/minify
-- https://github.com/markbates/pkger
 - https://github.com/evanw/esbuild
 - https://github.com/wellington/go-libsass
 
 ## Installation
-Enter the following command in your terminal:
+There are build recipes for Linux, Windows, and MacOS in the Makefile. If you have the Go environment configured with $GOROOT/bin included in $PATH, enter the following command in your terminal:
 ``` sh
 go install github.com/dkotik/zassets/cmd/zassets
 ```
 
 ## Usage
-Point Zassets at resource files or directories by adding the following line under the package declaration:
+```
+zassets [files or directories]... [flags]...
 
-``` go
-//go:generate zassets --output assets.gen.go --package test --var Assets --embed dir1 dir2 file1
+Flags:
+  -c, --comment [lines]      Include a comment with the variable definition.
+  -d, --debug                Readable refined output.
+  -e, --embed                Embed provided files and directories.
+  -h, --help                 help for zassets
+  -i, --ignore [pattern]     Skip files and directories that match provided pattern.
+                             You can use this flag multiple times.
+  -o, --output [file]        Write program output to this location.
+  -p, --package [name]       Assets will belong to this package.
+  -r, --refine               Apply default refiners to assets before embedding.
+  -s, --sum [algorithm]      Include a hash table sum.* in the embedded archive.
+                             Choose from xxh64, md5, and sha256.
+  -t, --tag [name]           Specify a build tag. You can use this flag multiple times.
+  -v, --var [name]           Assets will be accessible using this variable name.
+      --version              version for zassets
 ```
 
-<!-- _The program will create two files, the deployment file `assets.gen.go` and the development file `assets.dev.gen.go`. Each file contains an object that satisfies `http.FileSystem` interface named after the input directory. The development file can be activated using either **dev** or **debug** build tag and points directly to the transformed, but not minified, source files on disk, allowing you to edit them live._ -->
+Point Zassets at resource files or directories by adding the following line under the package declaration in one of your Go files. When you run `go generate`, the program will create the `assets.gen.go` file, which will contain the specified `Assets` variable acting as `http.FileSystem`. To read an asset call `Assets.Open("assetpath.txt")`.
 
-You may use shell redirection for the output in this manner: `//go:generate sh -c "zassets --var Assets --package test --embed dir1 dir2 file1 > assets.gen.go"`. But if an error occurs due to a missing file or during refinement, the shell will truncate `assets.gen.go` and cause package execution errors because of a missing variable. For this reason, it is wiser to specify `--output` parameter explicitly every time.
+``` go
+//go:generate zassets --output assets.gen.go --package mypackage --var Assets --embed dir1 dir2 file1
+```
 
-## Parameters
-- `--hashwith`
-- `--debug`
-<!-- document all the parameters -->
+You may use shell redirection for the output in this manner: `//go:generate sh -c "zassets dir1 dir2 file1 --var Assets --package mypackage --embed > assets.gen.go"`. But if an error occurs due to a missing file or during refinement, the shell will truncate `assets.gen.go` and cause package execution errors because of a missing variable. For this reason, it is wiser to specify `--output` parameter explicitly every time instead of using shell redirection.
 
-## Transformations
-- `*.sass` and `*.scss` files are compiled to `*.css`.
+### Transformations
+The following default file transformations happen when the `--refine` flag is activated. You can configure the compiler with custom refiners manually, if you needed, by using `zassets/compile` package.
+
 - `*.js` files are compiled to ESNext `*.js` bundles.
+- `*.sass` and `*.scss` files are compiled to `*.css`.
 - `*.html`, `*.svg`, and `*.css` files are minified.
-- `*.jpg`, `*.jpeg`, `*.png`, `*.webp` images are resized and re-compressed for the Web.
+- `*.jpg`, `*.jpeg`, `*.png`, `*.webp` images are resized to 1080p and re-compressed for the Web.
 - `*.min.*` files are served without any changes.
 
-## Public Assets
-All files matching `/public/**` glob are registered to a content-based hash map. `goresminpack.PublicName` function returns the associated hash with the appropriate extension. It is handy for encoding asset paths in your template engine. Use `goresminpack.PublicHTTPHandler` to present all public files through a single handler.
+### Public Assets
+If you would like to include a hash map for a given asset pack, use the `--sum [algorithm]` parameter. The resulting archive will contain a hash map file `sum.[algorithm]`, which you can use for validation or for serving assets by hash name. The second is handy for serving multiple versions of the same file in continual deployment setups or for a CDN or when multiple packages share some of the same assets. Files with identical content will be associated with the same hash name, when the `sum.[algorithm]` file is included. Experimental helpers you may try:
+
+- **`zassets.Public`**: An `http.FileSystem` object that will open assets by an associated hash name. Serve files over HTTP from this object.
+- **`zassets.PublicRegister`**: Link all assets from a given pack with `zassets.Public`. If the pack contains a supported `sum.[algorithm]` file, the assets are associated using the hash map and their original file extension. Otherwise, the debug mode is assumed and a flimsy hash is generated from name space and path.
+- **`zassets.PublicName`**: Returns the hash name associated with a resource. Use this function with your template engine to point to the correct assets.
 
 ## Roadmap
-- [ ] // TODO: I need to capture error from that go func somehow
-- [ ] Just use debug parameter? Hot-swapable <directory>.dev.gen.go driver that emulates serving of assets directly from disk, when launching in `debug` or `dev` build tags.
-- [ ] add comments to all exported functions and classes
-- [ ] add a blessing
-- [ ] set logger for the compiler
+- [ ] Solidify Refiner API:
+    - [ ] Javascript io.Pipe is clumsy. Needs re-writing.
+- [ ] Solidify Debugger API:
+    - [ ] Watched directories do not respond to new file being created.
+- [ ] When the APIs are solid, hedge them with test suites.
 
-// The directory operations are slow! Zip is not the right file
-// format for frequent tree transversal. Put Store behind a
-// a proper caching layer, if speed is a requirement.
+## License
+Zassets is released under the MIT license. The author would also like to add the SQLite blessing:
 
-there are build recipes in Makefile
+> May you do good and not evil. May you find forgiveness for yourself and forgive others. May you share freely, never taking more than you give.

@@ -10,7 +10,6 @@ func TestCompiler(t *testing.T) {
 
 	// i, err := NewIterator([]string{`../tests`, `text.go`}, []string{`\.go$`})
 	// err = c.Run(`/tmp/zassets`, i)
-
 	NewDebugger([]string{`../tests`, `text.go`}, []string{}, c)
 
 	wait := make(chan bool)

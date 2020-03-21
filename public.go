@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path"
-	"strings"
+	"regexp"
 	"sync"
 
 	"github.com/OneOfOne/xxhash"
@@ -72,9 +72,12 @@ func PublicRegister(namespace string, d http.FileSystem) (err error) {
 	if err == nil { // sumFile located
 		scanner := bufio.NewScanner(sumFile)
 		for scanner.Scan() {
-			line := scanner.Text()
-			if i := strings.Index(line, ` `); i > 5 {
-				add(line[i+1:]+path.Ext(path.Base(line)), line[:i])
+			// line := scanner.Text()
+			// if i := strings.Index(line, ` `); i > 5 {
+			// 	add(line[i+1:]+path.Ext(path.Base(line)), line[:i])
+			// }
+			if h, p, ok := parseSum(scanner.Text()); ok {
+				add(p, h)
 			}
 		}
 		return scanner.Err()
@@ -92,4 +95,12 @@ func PublicRegister(namespace string, d http.FileSystem) (err error) {
 		return nil
 	})
 	return err
+}
+
+// There must be two spaces or a space and an asterisk between each sum value and filename to be compared (the second space indicates text mode, the asterisk binary mode).
+var reParseSum = regexp.MustCompile(`^([^\s]{5,}) [ \*](.*)$`)
+
+func parseSum(line string) (string, string, bool) {
+	m := reParseSum.FindStringSubmatch(line)
+	return m[1], m[2], m[0] != ``
 }

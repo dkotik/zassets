@@ -40,13 +40,19 @@ var {{ .Variable }} = zassets.Must(zassets.FromBytes([]byte("
 ")))
 {{- end -}}
 
-{{- define "sum" -}}
+{{- define "oldsum" -}}
 // {{.Variable}}HashTable associates each entry with a content-based {{ .HashAlgorythm }} hash.
 var {{ .Variable }}HashTable = map[string]string{
     {{- range $k, $v := .HashTable }}
     "{{ $k }}": "{{ printf "%x" $v }}",
     {{- end }}
 }
+{{- end -}}
+
+{{- define "sum" -}}
+{{- range $k, $v := .HashTable -}}
+{{ printf "%x" $v }} *{{ $k }}
+{{ end }}
 {{- end -}}`
 
 // Embed converts a binary stream or a path set to a Go asset Store.

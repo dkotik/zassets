@@ -30,6 +30,7 @@ func NewCompiler(opts ...func(*Compiler) error) (*Compiler, error) {
 		make([]string, 0),
 		make([]*regexp.Regexp, 0),
 		make([]Refiner, 0),
+		log.New(os.Stdout, `📁 `, log.Ltime|log.Lmsgprefix),
 		make(chan string, 50),
 		make(chan error),
 	}
@@ -48,6 +49,7 @@ type Compiler struct {
 	include  []string
 	ignore   []*regexp.Regexp
 	refiners []Refiner
+	logger   *log.Logger
 
 	tasks  chan string
 	errors chan error
@@ -80,7 +82,7 @@ func (c *Compiler) working() bool { // remaining tasks
 		return false
 	}
 	if c.debug {
-		log.Printf("Waiting for %d tasks...", remaining)
+		c.logger.Printf("Waiting for %d tasks...", remaining)
 	}
 	time.Sleep(time.Second)
 	return true
@@ -119,7 +121,7 @@ func (c *Compiler) each(destination, source string) (err error) {
 	for _, r := range c.refiners {
 		if r.Match(source) {
 			if c.debug {
-				log.Printf("Refining %s to %s using %s.", source, r.Rename(destination), reflect.TypeOf(r))
+				c.logger.Printf("Refining %s to %s using %s.", source, r.Rename(destination), reflect.TypeOf(r))
 				return r.Debug(r.Rename(destination), source)
 			}
 			err = r.Refine(r.Rename(destination), source)
@@ -130,7 +132,7 @@ func (c *Compiler) each(destination, source string) (err error) {
 		}
 	}
 	if c.debug {
-		log.Printf("Copying %s to %s.", source, destination)
+		c.logger.Printf("Copying %s to %s.", source, destination)
 	}
 	r, err := os.Open(source)
 	if err != nil {

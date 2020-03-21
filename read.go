@@ -35,11 +35,6 @@ func FromArchive(p string) (*Store, error) {
 	return &Store{r, s.Size()}, nil
 }
 
-// // FromDirectory serves assets from disk.
-// func FromDirectory(p string) (*Store, error) {
-// 	return &Store{http.Dir(p)}, nil
-// }
-
 // Walk emulates filepath.Walk()
 func Walk(s http.FileSystem, p string, f filepath.WalkFunc) error {
 	root, err := s.Open(p)

@@ -83,10 +83,10 @@ that satisfies http.FileSystem interface.`,
 	CLI.PersistentFlags().BoolVarP(&refine, `refine`, `r`, false, `Apply default refiners to assets before embedding.`)
 	CLI.PersistentFlags().StringVarP(&em.Variable, `var`, `v`, ``, `Assets will be accessible using this variable name.`)
 	CLI.PersistentFlags().StringVarP(&em.Package, `package`, `p`, ``, `Assets will belong to this package.`)
-	CLI.PersistentFlags().StringArrayVarP(&em.Tags, `tags`, `t`, []string{}, `Specify build tags.`)
+	CLI.PersistentFlags().StringArrayVarP(&em.Tags, `tag`, `t`, []string{}, `Specify build tags.`)
 	CLI.PersistentFlags().StringVarP(&em.HashAlgorythm, `sum`, `s`, ``, `Include a hash table sum.* in the embedded archive. Choose from xxh64, md5, and sha256.`)
 	CLI.PersistentFlags().StringArrayVarP(&ignore, `ignore`, `i`, []string{}, `Skip files and directories that match provided patterns.`)
-	CLI.PersistentFlags().StringVarP(&em.Comment, `comment`, `c`, ``, `Include a comment.`)
-	CLI.PersistentFlags().BoolVarP(&debug, `debug`, `d`, os.Getenv(`DEBUG`) != ``, `Write the contents of refined files as readable as possible.`)
+	CLI.PersistentFlags().StringVarP(&em.Comment, `comment`, `c`, ``, `Include a comment with the variable definition.`)
+	CLI.PersistentFlags().BoolVarP(&debug, `debug`, `d`, os.Getenv(`DEBUG`) != ``, `Readable refined output.`)
 	CLI.Execute()
 }

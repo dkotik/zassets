@@ -47,6 +47,9 @@ type Store struct {
 // format for frequent tree transversal. Put Store behind a
 // a proper caching layer, if speed is a requirement.
 func (s *Store) Open(p string) (http.File, error) {
+	if strings.HasPrefix(p, `/`) {
+		p = p[1:] // Zip paths are not supposed to start with a slash
+	}
 	z, err := zip.NewReader(s.r, s.Size)
 	if err != nil {
 		return nil, err
@@ -62,11 +65,6 @@ func (s *Store) Open(p string) (http.File, error) {
 	}
 
 	// Contruct a directory interface.
-	if p == "/" || p == `\` || p == "." {
-		p = "" // also the root, but by another expression
-	} else if !strings.HasSuffix(p, `/`) {
-		p = p + `/`
-	}
 	dir := makeDir(z.File, p)
 	if len(dir.i) == 0 { //
 		return nil, &os.PathError{Op: `open`, Path: p, Err: os.ErrNotExist}
@@ -76,6 +74,11 @@ func (s *Store) Open(p string) (http.File, error) {
 
 func makeDir(z []*zip.File, p string) *zipDir {
 	dir := &zipDir{i: make([]os.FileInfo, 0), n: path.Base(p)}
+	if p == "/" || p == `\` || p == "." {
+		p = "" // also the root, but by another expression
+	} else if !strings.HasSuffix(p, `/`) {
+		p = p + `/`
+	}
 	subDirectories := make([]string, 0)
 OUTER:
 	for _, f := range z {
@@ -83,7 +86,7 @@ OUTER:
 			cutoff := len(p)
 			if index := strings.Index(f.Name[cutoff:], `/`); index > 0 {
 				// Found a sub directory!
-				rel := f.Name[cutoff : cutoff+index+1]
+				rel := f.Name[cutoff : cutoff+index]
 				for _, s := range subDirectories {
 					if s == rel {
 						continue OUTER // subdir already added
@@ -148,7 +151,10 @@ type zipFile struct {
 
 func (z *zipFile) Open() (err error) {
 	if z.f != nil {
-		return z.f.Close()
+		err = z.f.Close()
+		if err != nil {
+			return err
+		}
 	}
 	z.f, err = z.File.Open()
 	if err != nil {

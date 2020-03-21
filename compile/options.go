@@ -7,6 +7,7 @@ import (
 	"image/jpeg"
 	"image/png"
 	"io"
+	"log"
 	"os"
 	"regexp"
 
@@ -133,6 +134,14 @@ func WithInclude(paths ...string) func(c *Compiler) error {
 func WithDebug() func(c *Compiler) error {
 	return func(c *Compiler) error {
 		c.debug = true
+		return nil
+	}
+}
+
+// WithLogger overrides the default Compiler logger.
+func WithLogger(l *log.Logger) func(c *Compiler) error {
+	return func(c *Compiler) error {
+		c.logger = l
 		return nil
 	}
 }

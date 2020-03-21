@@ -33,5 +33,5 @@ func TestData(t *testing.T) {
 	// dump(`/test.css`)
 	// dump(`/template.tmpl`)
 	// dump(`/test.js`)
-	t.Fail()
+	// t.Fail()
 }

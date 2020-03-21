@@ -17,7 +17,7 @@ func TestEmbedAll(t *testing.T) {
 		Package:       "tests",
 		Comment:       "comment\ncomment2\ncomment3",
 		Tags:          []string{`dev`, `debug`},
-		HashAlgorythm: `xx`,
+		HashAlgorythm: `xxh64`,
 	}
 	em.SetTemplate("")
 	err := em.Iterator(os.Stdout, i)

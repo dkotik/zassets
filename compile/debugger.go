@@ -28,6 +28,9 @@ func (d *Debugger) SetLogger(l *log.Logger) {
 		l = log.New(os.Stdout, `📁 `, log.Ltime|log.Lmsgprefix)
 	}
 	d.l = l
+	if d.c != nil {
+		WithLogger(d.l)(d.c)
+	}
 }
 
 // Watch observes source objects for changes.
@@ -60,9 +63,6 @@ func (d *Debugger) watch() { // the boring watcher logic
 				somethingChanged = false
 				d.l.Println("writing changes")
 				err := d.c.Run(d.d, d.i)
-				// for d.c.working() {
-				// 	time.Sleep(time.Second)
-				// }
 				if err != nil {
 					d.l.Println("refining error:", err.Error())
 				}
@@ -72,8 +72,6 @@ func (d *Debugger) watch() { // the boring watcher logic
 				d.l.Println("error: could not gather the event")
 				return
 			}
-			// log.Println("event:", event)
-
 			if event.Op&fsnotify.Write == fsnotify.Write {
 				d.l.Println("modified file:", event.Name)
 				somethingChanged = true
