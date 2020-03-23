@@ -74,7 +74,8 @@ func (s *Store) Open(p string) (http.File, error) {
 
 func makeDir(z []*zip.File, p string) *zipDir {
 	dir := &zipDir{i: make([]os.FileInfo, 0), n: path.Base(p)}
-	if p == "/" || p == `\` || p == "." {
+	if p == "" { // needed so that the root directory can be walked
+	} else if p == "/" || p == `\` || p == "." {
 		p = "" // also the root, but by another expression
 	} else if !strings.HasSuffix(p, `/`) {
 		p = p + `/`

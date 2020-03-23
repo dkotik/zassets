@@ -62,7 +62,7 @@ If you would like to include a hash map for a given asset pack, use the `--sum [
 - [ ] Solidify Refiner API:
     - [ ] Javascript io.Pipe is clumsy. Needs re-writing.
 - [ ] Solidify Debugger API:
-    - [ ] Watched directories do not respond to new files being created.
+    - [x] Watched directories do not respond to new files being created.
 - [ ] When the APIs are solid, hedge them with test suites.
 
 ## License
