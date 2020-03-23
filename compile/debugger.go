@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -15,11 +16,11 @@ import (
 
 // Debugger watches sources and re-compile them to serve through the asset object.
 type Debugger struct {
-	d, s string
-	c    *Compiler
-	i    *Iterator
-	w    *fsnotify.Watcher
-	l    *log.Logger
+	d string
+	c *Compiler
+	i *Iterator
+	w *fsnotify.Watcher
+	l *log.Logger
 }
 
 // SetLogger changes the logger for all the messages that the Debugger produces.
@@ -36,15 +37,7 @@ func (d *Debugger) SetLogger(l *log.Logger) {
 // Watch observes source objects for changes.
 // Call multiple times, if additional objects need to be added.
 func (d *Debugger) Watch(p ...string) error {
-	adjusted := make([]string, 0)
-	for _, e := range p {
-		if filepath.IsAbs(e) {
-			adjusted = append(adjusted, e)
-		} else {
-			adjusted = append(adjusted, filepath.Join(d.s, e))
-		}
-	}
-	i, err := NewIterator(adjusted, []string{})
+	i, err := NewIterator(p, []string{})
 	if err != nil {
 		return err
 	}
@@ -91,10 +84,20 @@ func (d *Debugger) watch() { // the boring watcher logic
 
 // Open fulfills the http.FileSystem interface.
 // If there is no associated compiler, point to a file in source directory.
-// Otherwise, point to a temprory file that was built using the compiler.
+// Otherwise, point to a temporary file that was built using the compiler.
 func (d *Debugger) Open(p string) (http.File, error) {
 	if d.c == nil {
-		return os.Open(filepath.Join(d.s, p))
+		result := ""
+		if strings.HasPrefix(p, `/`) {
+			p = p[1:]
+		}
+		d.i.Walk(func(target, relative string, info os.FileInfo) error {
+			if relative == p {
+				result = target
+			}
+			return nil
+		})
+		return os.Open(result)
 	}
 	return os.Open(filepath.Join(d.d, p))
 }
@@ -118,7 +121,18 @@ func NewDebugger(entries, ignore []string, c *Compiler) *Debugger {
 	if !ok {
 		panic(errors.New(`cannot determine asset origin file`))
 	}
-	d.s = filepath.Dir(gofile)
+	fromDirectory := filepath.Dir(gofile)
+	adjusted := make([]string, 0)
+	for _, e := range entries {
+		if filepath.IsAbs(e) {
+			adjusted = append(adjusted, e)
+		} else {
+			adjusted = append(adjusted, filepath.Join(fromDirectory, e))
+		}
+	}
+	d.i, err = NewIterator(adjusted, ignore)
+	panicOnError(err)
+	// spew.Dump(adjusted)
 	if c == nil {
 		// no need for watch operations, if compiler there is no compiler
 		return d
@@ -126,14 +140,12 @@ func NewDebugger(entries, ignore []string, c *Compiler) *Debugger {
 
 	d.w, err = fsnotify.NewWatcher()
 	panicOnError(err)
-	d.Watch(entries...)
+	d.Watch(adjusted...)
 	d.d, err = ioutil.TempDir(os.TempDir(), `zassets-debug-*`)
-	panicOnError(err)
-	d.i, err = NewIterator(entries, ignore)
 	panicOnError(err)
 	d.c = c
 	panicOnError(d.c.Run(d.d, d.i)) // initial compilation
 	go d.watch()
-	d.l.Printf(`Compiled output served from <%s>. Watching <%s> for changes.`, d.d, d.s)
+	d.l.Printf(`Compiled output served from <%s>. Watching <%s> for changes.`, d.d, fromDirectory)
 	return d
 }
