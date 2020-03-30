@@ -17,7 +17,8 @@ func NewIterator(entries, ignore []string) (*Iterator, error) {
 	if len(ignore) == 0 {
 		ignore = []string{
 			`(\A|\\|\/)[\.\_][^\\\/]+$`,
-			`node_modules$`,
+			`(?i)\.go$`,
+			`(?i)node_modules$`,
 		}
 	}
 	for _, p := range ignore {

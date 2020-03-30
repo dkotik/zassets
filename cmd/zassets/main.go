@@ -22,10 +22,10 @@ func endOnError(err error) {
 }
 
 func main() {
-	refine, embed, debug := false, false, false
-	ignore := make([]string, 0)
+	embed := false
+	// Entries: make([]string, 0), Ignore: make([]string, 0), Tags: make([]string, 0)
 	em := &zassets.Embed{}
-	em.SetTemplate("")
+	em.SetTemplate("") // TODO: clumsy here, should I change template live or debug?
 	var CLI = &cobra.Command{
 		Use:     `zassets`,
 		Version: `0.0.1 Alpha`,
@@ -38,13 +38,27 @@ that satisfies http.FileSystem interface.`,
 				cmd.Help()
 				return
 			}
-			iterator, err := compile.NewIterator(args, ignore)
+
+			if em.Debug && embed {
+				em.Entries = args
+				w := os.Stdout
+				if o, err := cmd.PersistentFlags().GetString(`output`); o != "" {
+					endOnError(err)
+					w, err = os.Create(o)
+					endOnError(err)
+					defer w.Close()
+				}
+				endOnError(em.Reader(w, nil))
+				return
+			}
+
+			iterator, err := compile.NewIterator(args, em.Ignore)
 			endOnError(err)
 
-			if refine && !embed {
+			if em.Refine && !embed {
 				c, err := compile.NewCompiler(compile.WithDefaultOptions())
 				endOnError(err)
-				if debug {
+				if em.Debug {
 					compile.WithDebug()(c)
 				}
 				o, _ := cmd.PersistentFlags().GetString(`output`)
@@ -53,12 +67,12 @@ that satisfies http.FileSystem interface.`,
 				return
 			}
 
-			if refine {
+			if em.Refine {
 				t, err := ioutil.TempDir(os.TempDir(), `zassets-*`)
 				endOnError(err)
 				c, err := compile.NewCompiler(compile.WithDefaultOptions())
 				endOnError(err)
-				if debug {
+				if em.Debug {
 					compile.WithDebug()(c)
 				}
 				err = c.Run(t, iterator)
@@ -80,13 +94,13 @@ that satisfies http.FileSystem interface.`,
 	}
 	CLI.PersistentFlags().StringP(`output`, `o`, ``, `Write program output to this location.`)
 	CLI.PersistentFlags().BoolVarP(&embed, `embed`, `e`, false, `Embed provided files and directories.`)
-	CLI.PersistentFlags().BoolVarP(&refine, `refine`, `r`, false, `Apply default refiners to assets before embedding.`)
+	CLI.PersistentFlags().BoolVarP(&em.Refine, `refine`, `r`, false, `Apply default refiners to assets before embedding.`)
 	CLI.PersistentFlags().StringVarP(&em.Variable, `var`, `v`, ``, `Assets will be accessible using this variable name.`)
 	CLI.PersistentFlags().StringVarP(&em.Package, `package`, `p`, ``, `Assets will belong to this package.`)
 	CLI.PersistentFlags().StringArrayVarP(&em.Tags, `tag`, `t`, []string{}, `Specify build tags.`)
 	CLI.PersistentFlags().StringVarP(&em.HashAlgorythm, `sum`, `s`, ``, `Include a hash table sum.* in the embedded archive. Choose from xxh64, md5, and sha256.`)
-	CLI.PersistentFlags().StringArrayVarP(&ignore, `ignore`, `i`, []string{}, `Skip files and directories that match provided patterns.`)
+	CLI.PersistentFlags().StringArrayVarP(&em.Ignore, `ignore`, `i`, []string{}, `Skip files and directories that match provided patterns.`)
 	CLI.PersistentFlags().StringVarP(&em.Comment, `comment`, `c`, ``, `Include a comment with the variable definition.`)
-	CLI.PersistentFlags().BoolVarP(&debug, `debug`, `d`, os.Getenv(`DEBUG`) != ``, `Readable refined output.`)
+	CLI.PersistentFlags().BoolVarP(&em.Debug, `debug`, `d`, os.Getenv(`DEBUG`) != ``, `Readable refined output.`)
 	CLI.Execute()
 }

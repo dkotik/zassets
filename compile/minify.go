@@ -30,6 +30,8 @@ func (rf *RefineMinify) Match(p string) bool {
 
 // Refine applies a minifier to source and writes the result to destination.
 func (rf *RefineMinify) Refine(destination, source string) error {
+	// log.Println(destination, source)
+
 	w, err := os.Create(destination)
 	if err != nil {
 		return err

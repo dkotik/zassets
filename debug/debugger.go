@@ -1,4 +1,4 @@
-package compile
+package debug
 
 import (
 	"errors"
@@ -10,27 +10,17 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/dkotik/zassets/compile"
 	"github.com/fsnotify/fsnotify"
 )
 
 // Debugger watches sources and re-compile them to serve through the asset object.
 type Debugger struct {
 	d string
-	c *Compiler
-	i *Iterator
+	c *compile.Compiler
+	i *compile.Iterator
 	w *fsnotify.Watcher
 	l *log.Logger
-}
-
-// SetLogger changes the logger for all the messages that the Debugger produces.
-func (d *Debugger) SetLogger(l *log.Logger) {
-	if l == nil {
-		l = log.New(os.Stdout, `📁 `, log.Ltime|log.Lmsgprefix)
-	}
-	d.l = l
-	// if d.c != nil {
-	WithLogger(d.l)(d.c)
-	// }
 }
 
 // Watch observes source objects for changes.
@@ -84,9 +74,9 @@ func (d *Debugger) watch() { // the boring watcher logic
 }
 
 // Open fulfills the http.FileSystem interface.
-// If there is no associated compiler, point to a file in source directory.
-// Otherwise, point to a temporary file that was built using the compiler.
 func (d *Debugger) Open(p string) (http.File, error) {
+	// If there is no associated compiler, point to a file in source directory.
+	// Otherwise, point to a temporary file that was built using the compiler.
 	// if d.c == nil {
 	// 	result := ""
 	// 	if strings.HasPrefix(p, `/`) {
@@ -104,12 +94,12 @@ func (d *Debugger) Open(p string) (http.File, error) {
 }
 
 // NewDebugger watches entry directories and files and copies them to
-// a temporary directory. If the Compiler is provided, the files will
+// a temporary directory. If the Compiler is provided by options, the files will
 // also be refined by the compiler while being copied. If any of the watched
 // files are changed, the changes are reflected within 1-2 seconds.
 // The returned Debugger is meant to replace a zassets.Store object
 // for live-editing.
-func NewDebugger(entries, ignore []string, c *Compiler) *Debugger {
+func NewDebugger(entries, ignore []string, opts ...func(*Debugger) error) *Debugger {
 	var err error
 	panicOnError := func(err error) {
 		if err != nil {
@@ -117,12 +107,19 @@ func NewDebugger(entries, ignore []string, c *Compiler) *Debugger {
 		}
 	}
 	d := new(Debugger)
-	if c == nil {
-		c, err = NewCompiler(WithDebug()) // pass through compiler
+	for _, o := range opts {
+		if err = o(d); err != nil {
+			panicOnError(err)
+		}
+	}
+	if d.c == nil {
+		d.c, err = compile.NewCompiler()
 		panicOnError(err)
 	}
-	d.c = c
-	d.SetLogger(nil)
+	if d.l == nil {
+		WithLogger(log.New(os.Stdout, `📁 `, log.Ltime|log.Lmsgprefix))(d)
+	}
+
 	_, gofile, _, ok := runtime.Caller(1)
 	if !ok {
 		panic(errors.New(`cannot determine asset origin file`))
@@ -136,7 +133,7 @@ func NewDebugger(entries, ignore []string, c *Compiler) *Debugger {
 			adjusted = append(adjusted, filepath.Join(fromDirectory, e))
 		}
 	}
-	d.i, err = NewIterator(adjusted, ignore)
+	d.i, err = compile.NewIterator(adjusted, ignore)
 	panicOnError(err)
 	// spew.Dump(adjusted)
 
