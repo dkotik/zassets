@@ -1,6 +1,7 @@
 package compile
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -31,8 +32,7 @@ func NewCompiler(opts ...func(*Compiler) error) (*Compiler, error) {
 		make([]*regexp.Regexp, 0),
 		make([]Refiner, 0),
 		log.New(os.Stdout, `📁 `, log.Ltime|log.Lmsgprefix),
-		make(chan string, 50),
-		make(chan error),
+		50,
 	}
 	var err error
 	for _, o := range opts {
@@ -50,65 +50,48 @@ type Compiler struct {
 	ignore   []*regexp.Regexp
 	refiners []Refiner
 	logger   *log.Logger
-
-	tasks  chan string
-	errors chan error
+	maxTasks int
 }
 
 // Run gathers and compiles assets from files and folders in given paths.
 func (c *Compiler) Run(destination string, i *Iterator) (err error) {
-	if err = i.Walk(func(target, relative string, info os.FileInfo) error {
-		return c.task(filepath.Join(destination, relative), target)
-	}); err != nil {
-		return err
-	}
-	time.Sleep(time.Millisecond * 100)
-	for { // wait on workers
-		select {
-		case err = <-c.errors:
-			return err
-		default:
+	errs := make(chan error, c.maxTasks)
+	tasks := make(chan string, c.maxTasks)
+	i.Walk(func(source, relative string, info os.FileInfo) error {
+		tasks <- source
+		if len(errs) > 0 { // there is at least one error on stack
+			<-tasks // end the task
+			return errors.New(`iteration interrupted`)
 		}
-		if !c.working() {
+		go func() {
+			// for i := 0; i < 1+rand.Intn(3); i++ { // for testing
+			// 	time.Sleep(time.Second)
+			// }
+			if err := c.each(filepath.Join(destination, relative), source); err != nil {
+				if c.debug {
+					c.logger.Printf("Error in %s: %s", source, err)
+				}
+				errs <- err
+			}
+			<-tasks
+		}()
+		return nil
+	})
+
+	var remaining int
+	for { // wait on workers
+		time.Sleep(time.Second)
+		if remaining = len(tasks); remaining > 0 {
+			if c.debug {
+				c.logger.Printf("Waiting for %d tasks...", remaining)
+			}
+		} else {
 			break
 		}
 	}
-	return nil
-}
-
-func (c *Compiler) working() bool { // remaining tasks
-	remaining := len(c.tasks)
-	if remaining == 0 {
-		return false
-	}
-	if c.debug {
-		c.logger.Printf("Waiting for %d tasks...", remaining)
-	}
-	time.Sleep(time.Second)
-	return true
-}
-
-func (c *Compiler) task(destination, source string) (err error) {
-	select {
-	case err = <-c.errors:
-		for c.working() {
-		}
-		return err
-	default:
-	}
-	c.tasks <- source
-	go func() {
-		if err := c.each(destination, source); err != nil {
-			// todo remove
-			// fmt.Println(`!!!`, err.Error())
-			c.errors <- err
-		}
-		// for i := 0; i < 1+rand.Intn(3); i++ {
-		// 	time.Sleep(time.Second)
-		// }
-		<-c.tasks
-	}()
-	return nil
+	close(errs)
+	close(tasks)
+	return <-errs // return only the first error that occured
 }
 
 // Each searches for the first matching Refiner and runs it.

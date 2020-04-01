@@ -2,6 +2,7 @@ package debug
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -103,7 +104,9 @@ func NewDebugger(entries, ignore []string, opts ...func(*Debugger) error) *Debug
 	var err error
 	panicOnError := func(err error) {
 		if err != nil {
-			panic(err)
+			// panic(err)
+			fmt.Printf("Error: %s.\n", err)
+			os.Exit(1)
 		}
 	}
 	d := new(Debugger)
@@ -135,7 +138,6 @@ func NewDebugger(entries, ignore []string, opts ...func(*Debugger) error) *Debug
 	}
 	d.i, err = compile.NewIterator(adjusted, ignore)
 	panicOnError(err)
-	// spew.Dump(adjusted)
 
 	d.w, err = fsnotify.NewWatcher()
 	panicOnError(err)

@@ -15,10 +15,11 @@ type IteratorFunc func(target, relative string, info os.FileInfo) error
 func NewIterator(entries, ignore []string) (*Iterator, error) {
 	i := &Iterator{entries, make([]*regexp.Regexp, 0)}
 	if len(ignore) == 0 {
+		// filepath.Match(pattern, name)
 		ignore = []string{
-			`(\A|\\|\/)[\.\_][^\\\/]+$`,
-			`(?i)\.go$`,
-			`(?i)node_modules$`,
+			// `(\A|\\|\/)[\.\_][^\\\/]+$`,
+			// `(?i)\.go$`,
+			// `(?i)node_modules$`,
 		}
 	}
 	for _, p := range ignore {

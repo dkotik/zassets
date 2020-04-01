@@ -99,16 +99,13 @@ func WithRefiners(refiners ...Refiner) func(c *Compiler) error {
 // Default value is 50.
 func WithParallelTasks(max int) func(c *Compiler) error {
 	return func(c *Compiler) error {
-		if c.working() {
-			return errors.New("cannot change tasks while the compiler is running")
-		}
 		if max < 1 {
 			return errors.New("cannot run less than 1 parallel tasks")
 		}
 		if max > 9999 {
 			return errors.New(string(max) + " parallel tasks is too many")
 		}
-		c.tasks = make(chan string, max)
+		c.maxTasks = max
 		return nil
 	}
 }

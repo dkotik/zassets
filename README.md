@@ -27,7 +27,7 @@ Flags:
   -d, --debug                Readable refined output.
   -e, --embed                Embed provided files and directories.
   -i, --ignore [pattern]     Skip files and directories that match provided pattern.
-                             You can use this flag multiple times. If not set, ignore paths that begin with "." or "_" or "node_modules".
+                             You can use this flag multiple times.
   -o, --output [file]        Write program output to this location.
   -p, --package [name]       Assets will belong to this package.
   -r, --refine               Apply default refiners to assets before embedding.
@@ -73,9 +73,11 @@ If you would like to include a hash map for a given asset pack, use the `--sum [
   - [ ] Add image quality setting for the _Compiler_.
   - [ ] Add a refiner for Typescript.
   - [ ] Add a refiner for Clojure.
-  - [ ] What is zassets points to the same folder "." - the pathing gets screwed up with a panic? recursive inclusion - should I fight it? Filter out .go files by default?!
+  - [ ] What is zassets points to the same folder "." - the pathing gets screwed up with a panic. Recursive inclusion bug possibility - should I fight it by filtering out .go files by default?!
+  - [ ] (Default ignore setting?) If not set, ignore paths that begin with "." or "\_" or "node_modules".
 - [ ] Solidify Debugger API:
   - [x] Watched directories do not respond to new files being created.
+  - [ ] Currently copying files to a temporary directory. Building a virtual path tree would be faster.
 - [ ] When the APIs are solid, hedge them with test suites.
 
 ## License
