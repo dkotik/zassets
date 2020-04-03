@@ -3,7 +3,7 @@ package compile
 import "testing"
 
 func TestCompiler(t *testing.T) {
-	c, err := NewCompiler(WithDebug(), WithDefaultOptions())
+	c, err := NewCompiler(WithDefaultOptions())
 	if err != nil {
 		t.Fatal(err)
 	}

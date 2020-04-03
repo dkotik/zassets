@@ -12,6 +12,8 @@ import (
 var _ Refiner = &RefineMinify{}
 var reMinPass = regexp.MustCompile(`(?i)\.min\.[^\.]+$`)
 
+// var minifier = minify.New()
+
 // RefineMinify interfaces with the popular Minifier library.
 type RefineMinify struct {
 	passthrough
@@ -31,7 +33,6 @@ func (rf *RefineMinify) Match(p string) bool {
 // Refine applies a minifier to source and writes the result to destination.
 func (rf *RefineMinify) Refine(destination, source string) error {
 	// log.Println(destination, source)
-
 	w, err := os.Create(destination)
 	if err != nil {
 		return err
@@ -42,5 +43,5 @@ func (rf *RefineMinify) Refine(destination, source string) error {
 		return err
 	}
 	defer r.Close()
-	return rf.Minifier(nil, w, r, nil)
+	return rf.Minifier.Minify(minify.New(), w, r, nil)
 }
