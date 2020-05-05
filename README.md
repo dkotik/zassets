@@ -11,6 +11,7 @@ The program generates static asset packs as embedded Zip archives. It allows for
 
 ## Installation
 
+Do not forget to install [esbuild](https://github.com/evanw/esbuild) if you need it for Javascript compilation.
 There are build recipes for Linux, Windows, and MacOS in the Makefile. If you have the Go environment configured with $GOROOT/bin included in $PATH, enter the following command in your terminal:
 
 ```sh

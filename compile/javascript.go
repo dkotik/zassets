@@ -3,6 +3,7 @@ package compile
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os/exec"
 	"path/filepath"
@@ -36,8 +37,15 @@ func (rf *RefineJavascript) Refine(destination, source string) error {
 	return rf.compile(source, destination, false)
 }
 
-func (rf *RefineJavascript) compile(file, output string, debug bool) error {
-	// exec.LookPath(`esbuild`) // TODO: should I check if it is installed?
+func (rf *RefineJavascript) compile(file, output string, debug bool) (err error) {
+	_, err = exec.LookPath(`esbuild`)
+	if err != nil {
+		return errors.New(`"esbuild" javascript compiler is not installed`)
+	}
+
+	// spew.Dump(exec.LookPath(`esbuild`))
+	// spew.Dump(exec.LookPath(`go`))
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*5)
 	defer cancel() // interrupts the process running
 	args := []string{
@@ -54,7 +62,7 @@ func (rf *RefineJavascript) compile(file, output string, debug bool) error {
 	p.Stderr = &b
 	p.Stdout = &b
 	p.Dir = filepath.Dir(file)
-	err := p.Run()
+	err = p.Run()
 	if err != nil {
 		return fmt.Errorf(`%s: %s`, filepath.Dir(file), b.String())
 	}
