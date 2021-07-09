@@ -30,8 +30,6 @@ func (d *Debugger) Watch(p ...string) (err error) {
 	for _, dir := range p {
 		err = filepath.Walk(dir, func(p string, i os.FileInfo, err error) error {
 			d.w.Add(p)
-			if i.IsDir() {
-			}
 			return err
 		})
 		if err != nil {

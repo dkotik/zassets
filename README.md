@@ -15,6 +15,8 @@ Do not forget to install [esbuild](https://github.com/evanw/esbuild) if you need
 There are build recipes for Linux, Windows, and MacOS in the Makefile. If you have the Go environment configured with $GOROOT/bin included in $PATH, enter the following command in your terminal:
 
 ```sh
+go get -u github.com/spf13/cobra
+go get -u github.com/dkotik/zassets
 go install github.com/dkotik/zassets/cmd/zassets
 ```
 
@@ -68,13 +70,14 @@ If you would like to include a hash map for a given asset pack, use the `--sum [
 
 ## Roadmap
 
+- [ ] If an entry is missing, does not seem to raise an error. Packs all the previous entries as if everything is normal.
 - [ ] Explain major benefit of multiple resource packs: a huge pile of icons takes a long time to zip up and they do not need to be re-compressed.
 - [ ] Solidify Refiner API:
   - [ ] Javascript io.Pipe is clumsy. Needs re-writing.
   - [ ] Add image quality setting for the _Compiler_.
   - [ ] Add a refiner for Typescript.
   - [ ] Add a refiner for Clojure.
-  - [ ] What is zassets points to the same folder "." - the pathing gets screwed up with a panic. Recursive inclusion bug possibility - should I fight it by filtering out .go files by default?!
+  - [ ] What if zassets points to the same folder "." - the pathing gets screwed up with a panic. Recursive inclusion bug possibility - should I fight it by filtering out .go files by default?!
   - [ ] (Default ignore setting?) If not set, ignore paths that begin with "." or "\_" or "node_modules".
 - [ ] Solidify Debugger API:
   - [x] Watched directories do not respond to new files being created.
