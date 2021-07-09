@@ -1,6 +1,8 @@
 # Zassets, An Elegant Resource Bundler for Go
 
-> **v0.0.1 Disclaimer:** The resource debugger and compile APIs are unstable. The project carries some technical debt from some minifiers, which are not adapted to work well with virtual file systems, and a particular ESNext compiler ESBuild, which is incredibly fast but [quite hacky itself](https://github.com/evanw/esbuild/issues/13#issuecomment-587111778). Pull requests for more general usage and optimization are welcome.
+> **Disclaimers:** this project has been archived, because its main function has been replaced with Go embedding since version ~1.13.
+>
+> The resource debugger and compile APIs are unstable. The project carries some technical debt from some minifiers, which are not adapted to work well with virtual file systems, and a particular ESNext compiler ESBuild, which is incredibly fast but [quite hacky itself](https://github.com/evanw/esbuild/issues/13#issuecomment-587111778). Pull requests for more general usage and optimization are welcome.
 
 The program generates static asset packs as embedded Zip archives. It allows for multiple asset packs to exist harmoniously side by side in the same module, unlike most other packers. Giving up individual gzip encoding, common in other resource packers, for a Zip bundle speeds up compilation for larger resource packs. It also allows easy loading of assets from an external archive by calling `zassets.FromArchive("zipFile.zip")` when needed. The loss of speed for directory transversal operations is justified by the assumption that static assets are rarely accessed directly. They should be shielded by a proper caching layer or mirror to a CDN. This project is inspired by the following excellent packages:
 
